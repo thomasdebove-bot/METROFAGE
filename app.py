@@ -2324,7 +2324,7 @@ def render_cr(
             return ""
         zt = _escape(area_name)
         return f"""
-        <div class="zoneBlock reportBlock" data-zone-id="{zt}">
+        <section class="zoneBlock reportBlock cr-section" data-zone-id="{zt}">
           <div class="zoneTitle">
             <span>{zt}</span>
             <div class="zoneTools noPrint">
@@ -2359,7 +2359,7 @@ def render_cr(
               {rows_html}
             </tbody>
           </table>
-        </div>
+        </section>
         """
 
     # Build per-zone blocks
@@ -2495,7 +2495,7 @@ body{{padding:14px 14px 14px 280px;}}
 .page{{width:210mm;height:297mm;min-height:297mm;position:relative;background:#fff;overflow:visible;break-after:page;page-break-after:always;}}
 .page:last-child{{break-after:auto;page-break-after:auto;}}
 .pageContent{{padding:10mm 8mm 34mm 8mm;}}
-.page--cover .pageContent{{padding-top:0;}}
+.page--cover .pageContent{{padding:10mm 8mm 10mm 8mm;}}
 .muted{{color:var(--muted)}}
 .small{{font-size:12px}}
 .noPrint{{}}
@@ -2716,6 +2716,7 @@ body{{padding:14px 14px 14px 280px;}}
 .presenceGrip{{position:absolute;top:0;right:-6px;width:12px;height:100%;cursor:col-resize}}
 .presenceGrip::after{{content:"";position:absolute;top:3px;bottom:3px;left:5px;width:2px;background:#1d4ed8;border-radius:2px;opacity:1}}
 .presenceUsersTable th:hover .presenceGrip::after{{background:#0f172a}}
+.cr-section{{break-inside:avoid;page-break-inside:avoid}}
 .docFooter{{position:absolute;left:0;right:0;bottom:0;height:20mm;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3mm 10mm;border-top:2px solid var(--brand-red);background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
 .footLeft,.footCenter,.footRight{{position:absolute;z-index:2}}
 .footLeft{{left:0}}
@@ -2731,10 +2732,13 @@ body{{padding:14px 14px 14px 280px;}}
   body{{padding:0}}
   .actions,.rangePanel{{display:none!important}}
   .page{{width:210mm;min-height:297mm;height:auto;margin:0;box-shadow:none;break-after:auto;page-break-after:auto;}}
-  .pageContent{{padding-top:20mm;padding-bottom:20mm;}}
+  .page--report .pageContent{{padding-top:20mm;padding-bottom:20mm;}}
+  .page--cover .pageContent{{padding:0 8mm;}}
   .reportHeader{{position:fixed;top:0;left:0;right:0;background:#fff;padding:4mm 8mm 2mm 8mm;z-index:20;}}
   .docFooter{{position:fixed;bottom:0;left:0;right:0;}}
   .presenceGrip{{display:none!important}}
+  .presenceUsersTable thead{{display:table-header-group}}
+  .presenceUsersTable tr{{break-inside:avoid;page-break-inside:avoid}}
 }}
 
 {EDITOR_MEMO_MODAL_CSS}
@@ -2853,13 +2857,6 @@ body{{padding:14px 14px 14px 280px;}}
       <div class="pageContent">
         {cover_html}
         {top_html}
-      </div>
-      <div class="docFooter">
-        <div class="footLeft"></div>
-        <div class="footCenter">
-          {("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}
-        </div>
-        <div class="footRight"><span class="footPageNumber"></span></div>
       </div>
     </section>
 
