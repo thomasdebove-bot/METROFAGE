@@ -707,7 +707,16 @@ def packages_by_user(project_title: str) -> Dict[str, List[str]]:
         packages = packages.loc[
             packages[project_col].apply(lambda cell: project_title in _normalize_list_cell(str(cell)))
         ].copy()
-    user_col = _find_col(packages, [["managers", "ids"], ["manager", "ids"], ["managers"]])
+    user_col = _find_col(
+        packages,
+        [
+            ["managers", "ids"],
+            ["managers", "package managers", "ids"],
+            ["managers", "project managers", "ids"],
+            ["manager", "ids"],
+            ["managers"],
+        ],
+    )
     lot_col = _find_col(packages, [["name", "text"], ["name", "with company"], ["name"]])
     if not user_col or not lot_col:
         return {}
@@ -1684,7 +1693,17 @@ def render_home(project: Optional[str] = None, print_mode: bool = False) -> str:
         meeting_opts += f'<option value="{_escape(mid)}">{_escape(d_txt)} — {_escape(proj)}</option>'
 
     tempo_logo = _logo_data_url(LOGO_TEMPO_PATH)
-    logo_html = f"<img src='{tempo_logo}' alt='TEMPO' class='homeLogo' />" if tempo_logo else "<div class='homeLogoText'>TEMPO</div>"
+    eiffage_logo = _logo_data_url(LOGO_EIFFAGE_PATH)
+    left_logo = (
+        f"<img src='{eiffage_logo}' alt='EIFFAGE' class='brandLogo' />"
+        if eiffage_logo
+        else "<div class='homeLogoText'>EIFFAGE</div>"
+    )
+    right_logo = (
+        f"<img src='{tempo_logo}' alt='TEMPO' class='brandLogo' />"
+        if tempo_logo
+        else "<div class='homeLogoText'>TEMPO</div>"
+    )
     return f"""
 <!doctype html>
 <html lang="fr">
@@ -1698,7 +1717,8 @@ def render_home(project: Optional[str] = None, print_mode: bool = False) -> str:
 body{{margin:0;background:#fff;color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial;}}
 .wrap{{max-width:1100px;margin:0 auto;padding:26px;}}
 .card{{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px;}}
-.brandline{{display:flex;gap:16px;align-items:center;margin-bottom:12px}}
+.brandline{{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}}
+.brandLogo{{height:44px;width:auto;display:block}}
 .homeLogo{{height:44px;width:auto;display:block}}
 .homeLogoText{{font-weight:1000;letter-spacing:.18em;font-size:20px}}
 .tag{{color:var(--muted);font-weight:800}}
@@ -1715,11 +1735,12 @@ select{{width:100%;padding:12px 12px;border-radius:12px;border:1px solid var(--b
   <div class="wrap">
     <div class="card">
       <div class="brandline">
-        {logo_html}
+        {left_logo}
         <div>
           <div style="font-weight:1000">Compte-rendu • Réunion de synthèse</div>
           <div class="tag">Application EIFFAGE</div>
         </div>
+        {right_logo}
       </div>
 
       <div class="grid">
@@ -1991,10 +2012,12 @@ def render_cr(
                     full_name = " ".join([p for p in [first, last] if p]).strip()
                 if not full_name or not user_id:
                     continue
-                if packages_map and user_id not in packages_map:
-                    continue
-                email = str(row.get(email_col, "")).strip() if email_col else ""
-                items.append({"id": user_id, "name": full_name, "email": email})
+                if packages_map:
+                    has_lot = user_id in packages_map
+                else:
+                    has_lot = True
+            email = str(row.get(email_col, "")).strip() if email_col else ""
+            items.append({"id": user_id, "name": full_name, "email": email})
             items.sort(key=lambda x: (x.get("name", "").lower()))
             users_presence_rows = render_presence_rows(items, packages_map)
         else:
