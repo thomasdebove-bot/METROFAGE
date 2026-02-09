@@ -724,6 +724,29 @@ def packages_by_user(project_title: str) -> Dict[str, List[str]]:
     return out
 
 
+def package_manager_ids_for_project(project_title: str) -> List[str]:
+    packages = get_packages().copy()
+    if packages.empty:
+        return []
+    project_col = _find_col(packages, [["project", "title"], ["project"], ["projects"]])
+    if project_col:
+        packages[project_col] = packages[project_col].fillna("").astype(str)
+        packages = packages.loc[packages[project_col].str.contains(project_title, case=False, na=False)].copy()
+    manager_cols = [
+        _find_col(packages, [["managers", "package managers", "ids"]]),
+        _find_col(packages, [["managers", "project managers", "ids"]]),
+        _find_col(packages, [["managers", "ids"]]),
+    ]
+    manager_cols = [c for c in manager_cols if c]
+    if not manager_cols:
+        return []
+    ids: List[str] = []
+    for _, row in packages.iterrows():
+        for col in manager_cols:
+            ids.extend(_parse_ids(row.get(col)))
+    return sorted({i for i in ids if i})
+
+
 # -------------------------
 # KPI
 # -------------------------
@@ -1993,8 +2016,15 @@ def render_cr(
 
     users_presence_rows = ""
     try:
-        users_df = users_for_project("MDZ")
-        packages_map = packages_by_user("MDZ")
+        target_project = "MDZ - REUNION SYT"
+        packages_map = packages_by_user(target_project)
+        manager_ids = package_manager_ids_for_project(target_project)
+        users_df = get_users().copy()
+        if not users_df.empty and manager_ids:
+            id_col = _find_col(users_df, [["row id"], ["id"]])
+            if id_col:
+                users_df[id_col] = users_df[id_col].astype(str).str.strip()
+                users_df = users_df.loc[users_df[id_col].isin(manager_ids)].copy()
         company_map = companies_map_by_id()
         if not users_df.empty:
             id_col = _find_col(users_df, [["row id"], ["id"]])
