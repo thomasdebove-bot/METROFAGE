@@ -2790,8 +2790,8 @@ body{{padding:14px 14px 14px 280px;}}
   body{{padding:0}}
   .actions,.rangePanel{{display:none!important}}
   .page{{width:210mm;min-height:297mm;height:auto;margin:0;box-shadow:none;break-after:auto;page-break-after:auto;}}
-  .page--report .pageContent{{padding-top:20mm;padding-bottom:20mm;}}
-  .page--cover .pageContent{{padding:0 8mm 20mm 8mm;}}
+  .page--report .pageContent{{padding-top:16mm;padding-bottom:16mm;}}
+  .page--cover .pageContent{{padding:10mm 8mm 20mm 8mm;}}
   .reportHeader{{position:absolute;top:0;left:0;right:0;background:#fff;padding:4mm 8mm 2mm 8mm;z-index:20;}}
   .docFooter{{position:absolute;bottom:0;left:0;right:0;}}
   .presenceGrip{{display:none!important}}
