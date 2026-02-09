@@ -2209,8 +2209,8 @@ body{{padding:14px 14px 14px 280px;}}
 .coverHeader{{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}}
 .coverBrand{{display:flex;flex-direction:column;gap:10px;max-width:70%}}
 .coverSquare{{display:flex;align-items:flex-start;justify-content:flex-end}}
-.coverLogo{{height:58px;width:auto;display:block}}
-.coverSquareLogo{{height:58px;width:auto;display:block}}
+.coverLogo{{height:78px;width:auto;display:block}}
+.coverSquareLogo{{height:62px;width:auto;display:block}}
 .coverMeetingLine{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;font-weight:700;color:#111}}
 .coverDocRef{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;font-weight:700;color:#111}}
 .coverTitleBlock{{text-align:center;font-weight:900;display:flex;flex-direction:column;align-items:center;gap:6px}}
@@ -2345,7 +2345,7 @@ body{{padding:14px 14px 14px 280px;}}
 .crTable th, .crTable td{{border:1px solid var(--border);padding:7px 8px;vertical-align:top;page-break-inside:avoid;break-inside:avoid;}}
 .crTable tr{{page-break-inside:avoid;break-inside:avoid;}}
 .annexTable tr{{page-break-inside:avoid;break-inside:avoid;}}
-.crTable th{{background:var(--brand-red);color:#fff;text-align:center;font-weight:900;font-size:11px;line-height:1.2;white-space:nowrap}}
+.crTable th{{background:#e5e7eb;color:#111;text-align:center;font-weight:900;font-size:11px;line-height:1.2;white-space:nowrap}}
 .crTable td{{font-size:11px;line-height:1.3;word-break:normal;overflow-wrap:break-word;hyphens:none}}
 .crTable td.colDate, .crTable th.colDate{{padding:6px 4px}}
 
@@ -2400,11 +2400,9 @@ body{{padding:14px 14px 14px 280px;}}
 .reportHeader .accent{{color:var(--brand-red);font-weight:900}}
 .presenceTable .presenceList{{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px}}
 .presenceTable .presenceLine{{display:flex;align-items:center;gap:8px;font-weight:700}}
-.docFooter{{position:absolute;left:0;right:0;bottom:0;height:24mm;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3mm 10mm;border-top:1px solid #dbe5f0;background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
-.docFooter::before{{content:"";position:absolute;left:0;bottom:0;width:170px;height:42px;background:var(--brand-red);clip-path:polygon(0 100%,100% 100%,0 0)}}
-.docFooter::after{{content:"";position:absolute;right:0;bottom:0;width:260px;height:70px;background:var(--brand-red);clip-path:polygon(100% 0,100% 100%,0 100%)}}
+.docFooter{{position:absolute;left:0;right:0;bottom:0;height:20mm;display:flex;align-items:center;justify-content:center;gap:10px;padding:3mm 10mm;border-top:2px solid var(--brand-red);background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
 .footLeft,.footCenter,.footRight{{position:relative;z-index:2}}
-.footCenter{{text-align:center;flex:1}}
+.footCenter{{text-align:center;flex:1;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:11px;font-weight:700;color:#111}}
 .tempoLegal{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:10px;line-height:1.3;color:#6b7280;font-weight:600}}
 .footImg{{display:block;max-height:32px;width:auto}}
 .footMark{{max-height:48px}}
@@ -2434,7 +2432,7 @@ body{{padding:14px 14px 14px 280px;}}
               Réunion <span contenteditable='true' class='editInline' data-sync='cr-number'>{_escape(cr_number_default)}</span>
               du <strong>{_escape(cr_date_txt)}</strong>
             </div>
-            <div class='coverDocRef' contenteditable='true'>{_escape(document_ref_default)}</div>
+            <div class='coverDocRef' contenteditable='true' data-sync='doc-ref'>{_escape(document_ref_default)}</div>
           </div>
           <div class='coverSquare'>
             {("<img class='coverSquareLogo' src='" + logo_eiffage_square + "' alt='EIFFAGE' />") if logo_eiffage_square else ""}
@@ -2527,9 +2525,7 @@ body{{padding:14px 14px 14px 280px;}}
         {top_html}
       </div>
       <div class="docFooter">
-        <div class="footLeft">{"<img class='footImg footMark' src='" + logo_eiffage + "' alt='EIFFAGE' />" if logo_eiffage else ""}</div>
-        <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">EIFFAGE</div></div>
-        <div class="footRight">{"<img class='footImg' src='" + logo_eiffage_square + "' alt='EIFFAGE' />" if logo_eiffage_square else ""}</div>
+        <div class="footCenter" contenteditable="true" data-sync="doc-ref">{_escape(document_ref_default)}</div>
       </div>
     </section>
 
@@ -2546,9 +2542,7 @@ body{{padding:14px 14px 14px 280px;}}
           </div>
         </div>
         <div class="docFooter">
-          <div class="footLeft">{"<img class='footImg footMark' src='" + logo_eiffage + "' alt='EIFFAGE' />" if logo_eiffage else ""}</div>
-          <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">EIFFAGE</div></div>
-          <div class="footRight">{"<img class='footImg' src='" + logo_eiffage_square + "' alt='EIFFAGE' />" if logo_eiffage_square else ""}</div>
+          <div class="footCenter" contenteditable="true" data-sync="doc-ref">{_escape(document_ref_default)}</div>
         </div>
       </section>
     </div>
@@ -2563,9 +2557,7 @@ body{{padding:14px 14px 14px 280px;}}
         </div>
       </div>
       <div class="docFooter">
-        <div class="footLeft">{"<img class='footImg footMark' src='" + logo_eiffage + "' alt='EIFFAGE' />" if logo_eiffage else ""}</div>
-        <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">EIFFAGE</div></div>
-        <div class="footRight">{"<img class='footImg' src='" + logo_eiffage_square + "' alt='EIFFAGE' />" if logo_eiffage_square else ""}</div>
+        <div class="footCenter" contenteditable="true" data-sync="doc-ref">{_escape(document_ref_default)}</div>
       </div>
     </section>
   </template>
