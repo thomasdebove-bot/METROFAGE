@@ -1,5 +1,5 @@
 # =========================================================
-# TEMPO • METRONOME • COMPTE-RENDU SYNTHESE (HTML / PRINT-FIRST) — V3.2+
+# METRONOME • COMPTE-RENDU SYNTHESE (HTML / PRINT-FIRST) — V3.2+
 # =========================================================
 # ✅ Bleu = sujets traités dans la réunion sélectionnée (Meeting/ID)
 # ✅ Rappels = tâches non clôturées ET en retard à la DATE DE SEANCE (pas "aujourd’hui")
@@ -27,14 +27,14 @@ import os
 import re
 import urllib.parse
 import urllib.request
-from datetime import date, timedelta
+from datetime import date
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 
-app = FastAPI(title="TEMPO • CR Synthèse (METRONOME)")
+app = FastAPI(title="EIFFAGE • CR Synthèse (METRONOME)")
 
 # -------------------------
 # PATHS (UNC)
@@ -55,21 +55,13 @@ PROJECTS_PATH = os.getenv(
     "METRONOME_PROJECTS",
     r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Projects.csv",
 )
-LOGO_TEMPO_PATH = os.getenv(
-    "METRONOME_LOGO",
-    r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Content\Logo TEMPO.png",
+LOGO_EIFFAGE_PATH = os.getenv(
+    "METRONOME_LOGO_EIFFAGE",
+    r"C:\tempo-cr\Logo EIFFAGE.png",
 )
-LOGO_RYTHME_PATH = os.getenv(
-    "METRONOME_LOGO_RYTHME",
-    r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Content\Rythme.png",
-)
-LOGO_T_MARK_PATH = os.getenv(
-    "METRONOME_LOGO_TMARK",
-    r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Content\T logo.png",
-)
-LOGO_QR_PATH = os.getenv(
-    "METRONOME_QR",
-    r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Content\QR CODE.png",
+LOGO_EIFFAGE_SQUARE_PATH = os.getenv(
+    "METRONOME_LOGO_EIFFAGE_SQUARE",
+    r"C:\tempo-cr\Carré eiffage.png",
 )
 DOCUMENTS_PATH = os.getenv(
     "METRONOME_DOCUMENTS",
@@ -1574,17 +1566,17 @@ def render_home(project: Optional[str] = None, print_mode: bool = False) -> str:
         proj = project or str(r.get(M_COL_PROJECT_TITLE, "")).strip()
         meeting_opts += f'<option value="{_escape(mid)}">{_escape(d_txt)} — {_escape(proj)}</option>'
 
-    tempo_logo = _logo_data_url(LOGO_TEMPO_PATH)
-    logo_html = f"<img src='{tempo_logo}' alt='TEMPO' class='homeLogo' />" if tempo_logo else "<div class='homeLogoText'>TEMPO</div>"
+    eiffage_logo = _logo_data_url(LOGO_EIFFAGE_PATH)
+    logo_html = f"<img src='{eiffage_logo}' alt='EIFFAGE' class='homeLogo' />" if eiffage_logo else "<div class='homeLogoText'>EIFFAGE</div>"
     return f"""
 <!doctype html>
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TEMPO • CR Synthèse</title>
+<title>EIFFAGE • CR Synthèse</title>
 <style>
-:root{{--text:#0b1220;--muted:#475569;--border:#e2e8f0;--soft:#f8fafc;--shadow:0 10px 30px rgba(2,6,23,.06);--accent:#0f172a;}}
+:root{{--text:#0b1220;--muted:#475569;--border:#e2e8f0;--soft:#f8fafc;--shadow:0 10px 30px rgba(2,6,23,.06);--accent:#e30613;}}
 *{{box-sizing:border-box}}
 body{{margin:0;background:#fff;color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial;}}
 .wrap{{max-width:1100px;margin:0 auto;padding:26px;}}
@@ -1609,7 +1601,7 @@ select{{width:100%;padding:12px 12px;border-radius:12px;border:1px solid var(--b
         {logo_html}
         <div>
           <div style="font-weight:1000">Compte-rendu • Réunion de synthèse</div>
-          <div class="tag">Application TEMPO</div>
+          <div class="tag">Application EIFFAGE</div>
         </div>
       </div>
 
@@ -1668,9 +1660,9 @@ def render_missing_data_page(err: MissingDataError) -> str:
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Erreur de données — TEMPO</title>
+  <title>Erreur de données — EIFFAGE</title>
   <style>
-    :root{{--text:#0b1220;--muted:#475569;--border:#e2e8f0;--soft:#f8fafc;--shadow:0 10px 30px rgba(2,6,23,.06);--accent:#0f172a;}}
+    :root{{--text:#0b1220;--muted:#475569;--border:#e2e8f0;--soft:#f8fafc;--shadow:0 10px 30px rgba(2,6,23,.06);--accent:#e30613;}}
     *{{box-sizing:border-box}}
     body{{margin:0;background:#fff;color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial;}}
     .wrap{{max-width:900px;margin:0 auto;padding:26px;}}
@@ -1842,9 +1834,7 @@ def render_cr(
         rows = []
         for it in items:
             name = _escape(it.get("name", ""))
-            logo = (it.get("logo", "") or "").strip()
-            logo_html = f"<img class='coLogo' src='{_escape(logo)}' alt='' loading='lazy' />" if logo.startswith("http") else ""
-            rows.append(f"<li class='presenceLine'>{logo_html}<span>{name}</span></li>")
+            rows.append(f"<li class='presenceLine'><span>{name}</span></li>")
         return f"<tr><td>{_escape(label)} ({len(items)})</td><td><ul class='presenceList'>{''.join(rows)}</ul></td></tr>"
 
     presence_html = f"""
@@ -2184,7 +2174,8 @@ def render_cr(
   --border:#e2e8f0;
   --soft:#f8fafc;
   --shadow:0 10px 30px rgba(2,6,23,.06);
-  --accent:#0f172a;
+  --accent:#e30613;
+  --brand-red:#e30613;
   --blueSoft:#eff6ff;
   --blueBorder:#bfdbfe;
   --col-type:7%;
@@ -2214,26 +2205,24 @@ body{{padding:14px 14px 14px 280px;}}
 .topPage{{transform:scale(var(--top-scale));transform-origin:top left}}
 @media print{{.topPage{{margin:0;}}}}
 .reportTables{{margin-top:0}}
-.coverHero{{position:relative;overflow:hidden;background:#fff;min-height:420px}}
-.coverHeroImg{{position:relative;min-height:430px;background-size:cover;background-position:center}}
-.coverHeroFade{{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,0));}}
-.coverHeroCurve{{position:absolute;left:50%;bottom:-95px;width:135%;height:190px;transform:translateX(-50%);background:#fff;border-radius:50% 50% 0 0 / 100% 100% 0 0;z-index:2}}
-.coverHeroLogoWrap{{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:4;background:#fff;padding:10px 18px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,.12)}}
-.coverHeroLogo{{height:110px;width:auto;display:block}}
-.coverNoteCenter{{text-align:center;padding:10px 16px 12px 16px;font-weight:900;display:flex;flex-direction:column;align-items:center;gap:10px}}
-.coverAppNote{{margin-top:8px;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:14px;line-height:1.45;color:#f97316;font-style:italic;font-weight:600;max-width:640px}}
-.coverUrl{{margin-top:6px;font-weight:900;color:#f97316;text-decoration:underline;text-underline-offset:3px}}
-.coverUrl::after{{content:" ↗";font-weight:900}}
-.coverProjectTitle{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:22px;line-height:1.2;color:#f59e0b;font-weight:700;letter-spacing:.5px;text-transform:uppercase}}
-.coverCrTitle{{margin-top:10px;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:22px;line-height:1.2;color:#0f3a40;font-weight:700}}
-.coverCrMeta{{margin-top:8px;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:22px;line-height:1.2;color:#0f3a40;font-weight:700}}
+.coverLayout{{display:flex;flex-direction:column;gap:20px;padding:16mm 6mm 0 6mm}}
+.coverHeader{{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}}
+.coverBrand{{display:flex;flex-direction:column;gap:10px;max-width:70%}}
+.coverSquare{{display:flex;align-items:flex-start;justify-content:flex-end}}
+.coverLogo{{height:58px;width:auto;display:block}}
+.coverSquareLogo{{height:58px;width:auto;display:block}}
+.coverMeetingLine{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;font-weight:700;color:#111}}
+.coverDocRef{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;font-weight:700;color:#111}}
+.coverTitleBlock{{text-align:center;font-weight:900;display:flex;flex-direction:column;align-items:center;gap:6px}}
+.coverTitle{{font-size:22px;font-weight:900;color:#111;letter-spacing:.4px}}
+.coverSubtitle{{font-size:22px;font-weight:900;color:#111;letter-spacing:.4px}}
 .editInline{{display:inline-block;min-width:40px;padding:0 4px;border-bottom:2px dashed #cbd5e1;outline:none}}
 @media print{{.editInline{{border-bottom:none}}}}
 .nextMeetingBox{{margin:18px auto 0 auto;max-width:78%;border:2px solid #111;padding:12px 10px;font-weight:1000}}
 .nextMeetingLine1{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px}}
-.nextMeetingLine2{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;color:#ef4444;margin-top:5px}}
+.nextMeetingLine2{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;color:var(--brand-red);margin-top:5px}}
 .nextMeetingLine3{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;color:#111;margin-top:4px;outline:none}}
-@media print{{.coverHeroImg{{min-height:390px}} .coverProjectTitle{{font-size:44px}} .coverCrTitle{{font-size:33px}} .coverCrMeta{{font-size:36px}} .nextMeetingLine1{{font-size:18px}} .nextMeetingLine2{{font-size:32px}} .nextMeetingLine3{{font-size:27px}}}}
+@media print{{.coverTitle{{font-size:30px}} .coverSubtitle{{font-size:30px}} .coverMeetingLine{{font-size:20px}} .coverDocRef{{font-size:20px}}}}
 
 /* PROJECT BANNER */
 .banner{{
@@ -2273,17 +2262,17 @@ body{{padding:14px 14px 14px 280px;}}
   padding:14px 14px;border:1px solid var(--border);border-radius:16px;
   background:linear-gradient(180deg,#fff, var(--soft));
   font-weight:1000;font-size:16px;letter-spacing:.2px;
-  border-left:6px solid #0f172a;
+  border-left:6px solid var(--brand-red);
 }}
 .zoneTitle{{
   display:flex;align-items:center;gap:10px;
   padding:6px 10px;border:1px solid var(--border);border-bottom:none;
-  background:#f59e0b;color:#ffffff;font-weight:900;font-size:11px;text-transform:uppercase;
+  background:var(--brand-red);color:#ffffff;font-weight:900;font-size:11px;text-transform:uppercase;
 }}
 .zoneTitle button{{margin-left:auto}}
 .zoneTools{{display:flex;align-items:center;gap:6px;margin-left:auto}}
 .zoneBtn{{border:1px solid #ffffff;background:#fff;border-radius:8px;padding:4px 8px;font-weight:800;cursor:pointer}}
-.zoneBlock.highlight{{box-shadow:0 0 0 2px #f59e0b inset; background:linear-gradient(180deg,#fff7ed,#fff)}}
+.zoneBlock.highlight{{box-shadow:0 0 0 2px var(--brand-red) inset; background:linear-gradient(180deg,#fff7ed,#fff)}}
 .zoneBlock.pageBreakBefore{{page-break-before:always}}
 .u-page-break{{break-before:page;page-break-before:always;}}
 .u-avoid-break{{break-inside:avoid;page-break-inside:avoid;}}
@@ -2333,8 +2322,8 @@ body{{padding:14px 14px 14px 280px;}}
 
 /* Bleu = sujets réunion */
 .newItem{{border-color: var(--blueBorder);background: linear-gradient(180deg, #ffffff, var(--blueSoft));box-shadow: 0 0 0 2px rgba(59,130,246,.05);}}
-.reminderItem{{border-left:4px solid #ef4444;}}
-.followItem{{border-left:4px solid #f59e0b;}}
+.reminderItem{{border-left:4px solid var(--brand-red);}}
+.followItem{{border-left:4px solid var(--brand-red);}}
 
 /* KPI list */
 .kpiList{{display:flex;flex-direction:column;gap:8px}}
@@ -2356,7 +2345,7 @@ body{{padding:14px 14px 14px 280px;}}
 .crTable th, .crTable td{{border:1px solid var(--border);padding:7px 8px;vertical-align:top;page-break-inside:avoid;break-inside:avoid;}}
 .crTable tr{{page-break-inside:avoid;break-inside:avoid;}}
 .annexTable tr{{page-break-inside:avoid;break-inside:avoid;}}
-.crTable th{{background:#1f4e4f;color:#fff;text-align:center;font-weight:900;font-size:11px;line-height:1.2;white-space:nowrap}}
+.crTable th{{background:var(--brand-red);color:#fff;text-align:center;font-weight:900;font-size:11px;line-height:1.2;white-space:nowrap}}
 .crTable td{{font-size:11px;line-height:1.3;word-break:normal;overflow-wrap:break-word;hyphens:none}}
 .crTable td.colDate, .crTable th.colDate{{padding:6px 4px}}
 
@@ -2385,7 +2374,7 @@ body{{padding:14px 14px 14px 280px;}}
 .thumbs{{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px}}
 .thumb{{height:90px;width:auto;border:1px solid var(--border);border-radius:8px;display:block}}
 .entryComment{{margin-top:8px;padding-left:12px;border-left:3px solid #e2e8f0}}
-.tagReminderGreen{{color:#16a34a;font-weight:900}}
+.tagReminderGreen{{color:var(--brand-red);font-weight:900}}
 .thumbA{{display:inline-flex}}
 .commentText{{font-weight:400;line-height:1.25}}
 .tagReminder{{color:#b91c1c;font-weight:900}}
@@ -2395,9 +2384,9 @@ body{{padding:14px 14px 14px 280px;}}
 .annexTable td:first-child{{width:90px;color:#2563eb;font-weight:900}}
 .annexTable td:last-child{{text-align:right}}
 .annexTable td:last-child .annexLink{{display:inline-block;text-align:right}}
-.annexTable th{{font-weight:900;background:#1f4e4f;color:#fff}}
-.annexTable .annexLink{{color:#f97316;font-weight:800;text-decoration:underline;text-underline-offset:3px;cursor:pointer}}
-.annexTable .annexLink::after{{content:" ↗";font-weight:900;color:#f97316}}
+.annexTable th{{font-weight:900;background:var(--brand-red);color:#fff}}
+.annexTable .annexLink{{color:var(--brand-red);font-weight:800;text-decoration:underline;text-underline-offset:3px;cursor:pointer}}
+.annexTable .annexLink::after{{content:" ↗";font-weight:900;color:var(--brand-red)}}
 .annexTable tr:last-child td{{border-bottom:none}}
 .coverTable{{margin:10px 0 12px 0}}
 .coverTable td:first-child{{width:260px;color:#0b1220;font-weight:900}}
@@ -2408,12 +2397,12 @@ body{{padding:14px 14px 14px 280px;}}
 .coverNoteTitle{{font-weight:1000;margin-bottom:6px}}
 .reportHeader{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:11px;font-weight:400;color:#0b1220;text-align:center;margin:0 0 10px 0;}}
 @media print{{.printHeaderFixed{{position:sticky;top:0;background:#fff;padding:1mm 0;z-index:20;}}}}
-.reportHeader .accent{{color:#f59e0b;font-weight:900}}
+.reportHeader .accent{{color:var(--brand-red);font-weight:900}}
 .presenceTable .presenceList{{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px}}
 .presenceTable .presenceLine{{display:flex;align-items:center;gap:8px;font-weight:700}}
 .docFooter{{position:absolute;left:0;right:0;bottom:0;height:24mm;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3mm 10mm;border-top:1px solid #dbe5f0;background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
-.docFooter::before{{content:"";position:absolute;left:0;bottom:0;width:170px;height:42px;background:#123f45;clip-path:polygon(0 100%,100% 100%,0 0)}}
-.docFooter::after{{content:"";position:absolute;right:0;bottom:0;width:260px;height:70px;background:#123f45;clip-path:polygon(100% 0,100% 100%,0 100%)}}
+.docFooter::before{{content:"";position:absolute;left:0;bottom:0;width:170px;height:42px;background:var(--brand-red);clip-path:polygon(0 100%,100% 100%,0 0)}}
+.docFooter::after{{content:"";position:absolute;right:0;bottom:0;width:260px;height:70px;background:var(--brand-red);clip-path:polygon(100% 0,100% 100%,0 100%)}}
 .footLeft,.footCenter,.footRight{{position:relative;z-index:2}}
 .footCenter{{text-align:center;flex:1}}
 .tempoLegal{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:10px;line-height:1.3;color:#6b7280;font-weight:600}}
@@ -2429,54 +2418,33 @@ body{{padding:14px 14px 14px 280px;}}
 """
 
     # Banner / cover HTML
-    bg_style = (
-        f"background-image:url('{_escape(proj_img)}');"
-        if proj_img.startswith("http")
-        else "background:linear-gradient(90deg,#cfe8ff,#ffffff);"
-    )
-
-    tempo_logo = _logo_data_url(LOGO_TEMPO_PATH)
-    logo_rythme = _logo_data_url(LOGO_RYTHME_PATH)
-    logo_tmark = _logo_data_url(LOGO_T_MARK_PATH)
+    logo_eiffage = _logo_data_url(LOGO_EIFFAGE_PATH)
+    logo_eiffage_square = _logo_data_url(LOGO_EIFFAGE_SQUARE_PATH)
     cover_html = ""
 
-    next_meeting_date = (meet_date or ref_date) + timedelta(days=7)
-    next_meeting_date_txt = next_meeting_date.strftime("%d/%m/%Y")
     cr_date_txt = (meet_date or ref_date).strftime("%d/%m/%Y")
 
-    cover_hero_html = f"""
-      <div class='coverHero'>
-        <div class='coverHeroImg' style="{bg_style}">
-          <div class='coverHeroLogoWrap'>{("<img class='coverHeroLogo' src='" + tempo_logo + "' alt='TEMPO' />") if tempo_logo else ""}</div>
-          <div class='coverHeroFade'></div>
-        </div>
-        <div class='coverHeroCurve'></div>
-      </div>
-    """
-
-    cover_note_html = f"""
-      <div class='coverNoteCenter'>
-        <div class='coverProjectTitle' contenteditable='true'>{_escape(project)}</div>
-        <div class='coverCrTitle' contenteditable='true'>CR REUNION DE SYNTHESE TECHNIQUE</div>
-        <div class='coverCrMeta'>
-          N°<span contenteditable='true' class='editInline' data-sync='cr-number'>{_escape(cr_number_default)}</span>
-          du <strong>{_escape(cr_date_txt)}</strong>
-        </div>
-        <div class='nextMeetingBox'>
-          <div class='nextMeetingLine1'>La prochaine réunion de synthèse est fixée au</div>
-          <div class='nextMeetingLine2'>
-            <span contenteditable='true' class='editInline'>{_escape(next_meeting_date_txt)}</span>
-            à
-            <span contenteditable='true' class='editInline'>14h00</span>
+    document_ref_default = f"{project}_CR_{cr_date_txt.replace('/', '')}"
+    cover_html = f"""
+      <div class='coverLayout'>
+        <div class='coverHeader'>
+          <div class='coverBrand'>
+            {("<img class='coverLogo' src='" + logo_eiffage + "' alt='EIFFAGE' />") if logo_eiffage else ""}
+            <div class='coverMeetingLine'>
+              Réunion <span contenteditable='true' class='editInline' data-sync='cr-number'>{_escape(cr_number_default)}</span>
+              du <strong>{_escape(cr_date_txt)}</strong>
+            </div>
+            <div class='coverDocRef' contenteditable='true'>{_escape(document_ref_default)}</div>
           </div>
-          <div contenteditable='true' class='nextMeetingLine3'>BASE VIE — adresse à compléter</div>
+          <div class='coverSquare'>
+            {("<img class='coverSquareLogo' src='" + logo_eiffage_square + "' alt='EIFFAGE' />") if logo_eiffage_square else ""}
+          </div>
         </div>
-        <div class='coverAppNote'>
-          Téléchargez gratuitement l’application de gestion de projet METRONOME. L’application développée par TEMPO
-          dédiée à la gestion de projet. Celle-ci vous permettra de retrouver l’intégralité des réunions de synthèse, comptes rendu,
-          planning et suivi des tâches depuis votre smartphone ou votre ordinateur.
+        <div class='coverTitleBlock'>
+          <div class='coverTitle' contenteditable='true'>- Compte Rendu -</div>
+          <div class='coverSubtitle' contenteditable='true'>{_escape(project)}</div>
         </div>
-        <a class='coverUrl' href='https://app.atelier-tempo.fr' target='_blank' rel='noopener'>app.atelier-tempo.fr</a>
+        {presence_html}
       </div>
     """
 
@@ -2486,12 +2454,7 @@ body{{padding:14px 14px 14px 280px;}}
       </div>
     """
 
-    top_html = f"""
-      <div class="topPage">
-        {cover_hero_html}
-        {cover_note_html}
-      </div>
-    """
+    top_html = ""
     annexes_html = ""
     try:
         docs = get_documents().copy()
@@ -2564,9 +2527,9 @@ body{{padding:14px 14px 14px 280px;}}
         {top_html}
       </div>
       <div class="docFooter">
-        <div class="footLeft">{"<img class='footImg footMark' src='" + logo_tmark + "' alt='' />" if logo_tmark else ""}</div>
-        <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">TEMPO</div><div class="tempoLegal">35, rue Beaubourg, 75003 Paris<br/>SAS au capital de 1 000 Euros - RCS Créteil N° 892 046 301 - APE 7112 B</div>{("<img class='footImg footRythme' src='" + logo_rythme + "' alt='' />") if logo_rythme else ""}</div>
-        <div class="footRight"></div>
+        <div class="footLeft">{"<img class='footImg footMark' src='" + logo_eiffage + "' alt='EIFFAGE' />" if logo_eiffage else ""}</div>
+        <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">EIFFAGE</div></div>
+        <div class="footRight">{"<img class='footImg' src='" + logo_eiffage_square + "' alt='EIFFAGE' />" if logo_eiffage_square else ""}</div>
       </div>
     </section>
 
@@ -2575,7 +2538,6 @@ body{{padding:14px 14px 14px 280px;}}
         <div class="pageContent">
           <div class="reportTables">
             {report_header_html}
-            {presence_html}
             <div class="reportBlocks">
               {zones_html}
               {annexes_html}
@@ -2584,9 +2546,9 @@ body{{padding:14px 14px 14px 280px;}}
           </div>
         </div>
         <div class="docFooter">
-          <div class="footLeft">{"<img class='footImg footMark' src='" + logo_tmark + "' alt='' />" if logo_tmark else ""}</div>
-          <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">TEMPO</div><div class="tempoLegal">35, rue Beaubourg, 75003 Paris<br/>SAS au capital de 1 000 Euros - RCS Créteil N° 892 046 301 - APE 7112 B</div>{("<img class='footImg footRythme' src='" + logo_rythme + "' alt='' />") if logo_rythme else ""}</div>
-          <div class="footRight"></div>
+          <div class="footLeft">{"<img class='footImg footMark' src='" + logo_eiffage + "' alt='EIFFAGE' />" if logo_eiffage else ""}</div>
+          <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">EIFFAGE</div></div>
+          <div class="footRight">{"<img class='footImg' src='" + logo_eiffage_square + "' alt='EIFFAGE' />" if logo_eiffage_square else ""}</div>
         </div>
       </section>
     </div>
@@ -2601,9 +2563,9 @@ body{{padding:14px 14px 14px 280px;}}
         </div>
       </div>
       <div class="docFooter">
-        <div class="footLeft">{"<img class='footImg footMark' src='" + logo_tmark + "' alt='' />" if logo_tmark else ""}</div>
-        <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">TEMPO</div><div class="tempoLegal">35, rue Beaubourg, 75003 Paris<br/>SAS au capital de 1 000 Euros - RCS Créteil N° 892 046 301 - APE 7112 B</div>{("<img class='footImg footRythme' src='" + logo_rythme + "' alt='' />") if logo_rythme else ""}</div>
-        <div class="footRight"></div>
+        <div class="footLeft">{"<img class='footImg footMark' src='" + logo_eiffage + "' alt='EIFFAGE' />" if logo_eiffage else ""}</div>
+        <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">EIFFAGE</div></div>
+        <div class="footRight">{"<img class='footImg' src='" + logo_eiffage_square + "' alt='EIFFAGE' />" if logo_eiffage_square else ""}</div>
       </div>
     </section>
   </template>
