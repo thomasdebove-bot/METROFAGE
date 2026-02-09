@@ -571,7 +571,7 @@ def render_task_comment(r) -> str:
         return ""
     author = _escape(r.get(E_COL_TASK_COMMENT_AUTHOR, ""))
     d = _fmt_date(_parse_date_any(r.get(E_COL_TASK_COMMENT_DATE)))
-    body = _escape(txt).replace("\n", "<br>")
+    body = _format_bullet_text(txt)
     meta = " • ".join([x for x in [author, d] if x])
     return f"""
       <div class="topicComment">
@@ -591,7 +591,7 @@ def render_entry_comment(r) -> str:
     author = _escape(r.get(E_COL_TASK_COMMENT_AUTHOR, ""))
     d = _fmt_date(_parse_date_any(r.get(E_COL_TASK_COMMENT_DATE)))
     company = _escape(r.get(E_COL_COMPANY_TASK, ""))
-    body = _escape(txt).replace("\n", "<br>")
+    body = _format_bullet_text(txt)
     meta = " • ".join([x for x in [author, company, d] if x])
     return f"""
       <div class="entryComment">
@@ -599,6 +599,15 @@ def render_entry_comment(r) -> str:
         <div style="margin-top:6px">{body}</div>
       </div>
     """
+
+
+def _format_bullet_text(text: str) -> str:
+    if text is None:
+        return ""
+    escaped = _escape(text)
+    for bullet in ["•", "·", "▪", "‣", "◦"]:
+        escaped = escaped.replace(bullet, f"<br>{bullet} ")
+    return escaped.replace("\n", "<br>")
 
 
 # -------------------------
@@ -2070,6 +2079,8 @@ def render_cr(
             lot_list = lots_map.get(user_id, [])
             if company_name == "TEMPO":
                 lot_list = ["SYNTHESE"]
+            if "@atelier-tempo.fr" in email.lower():
+                lot_list = ["SYNTHESE"]
             if name.strip().upper() == "MATHIEU DUVAL":
                 lot_list = ["SYNTHESE"]
             lot_display = _escape(", ".join(lot_list)) if lot_list else "—"
@@ -2222,7 +2233,7 @@ def render_cr(
 
     # Card renderer for tasks outside the meeting (rappels / à-suivre) — NO BADGES
     def render_task_card_from_row(r, tag: str, extra_class: str, img_col: Optional[str]) -> str:
-        title = _escape(r.get(E_COL_TITLE, ""))
+        title = _format_bullet_text(r.get(E_COL_TITLE, ""))
         company = _escape(r.get(E_COL_COMPANY_TASK, ""))
         owner = _escape(r.get(E_COL_OWNER, ""))
         deadline = _fmt_date(_parse_date_any(r.get(E_COL_DEADLINE)))
@@ -2277,7 +2288,7 @@ def render_cr(
         reminder_closed: bool = False,
         row_id: str = "",
     ) -> str:
-        title = _escape(r.get(E_COL_TITLE, ""))
+        title = _format_bullet_text(r.get(E_COL_TITLE, ""))
         company = _escape(r.get(E_COL_COMPANY_TASK, ""))
         packages = _escape(r.get(E_COL_PACKAGES, ""))
         concerne_display = _concerne_trigram(company)
@@ -2781,8 +2792,8 @@ body{{padding:14px 14px 14px 280px;}}
   .page{{width:210mm;min-height:297mm;height:auto;margin:0;box-shadow:none;break-after:auto;page-break-after:auto;}}
   .page--report .pageContent{{padding-top:20mm;padding-bottom:20mm;}}
   .page--cover .pageContent{{padding:0 8mm;}}
-  .reportHeader{{position:fixed;top:0;left:0;right:0;background:#fff;padding:4mm 8mm 2mm 8mm;z-index:20;}}
-  .docFooter{{position:fixed;bottom:0;left:0;right:0;}}
+  .reportHeader{{position:absolute;top:0;left:0;right:0;background:#fff;padding:4mm 8mm 2mm 8mm;z-index:20;}}
+  .docFooter{{position:absolute;bottom:0;left:0;right:0;}}
   .presenceGrip{{display:none!important}}
   .presenceUsersTable thead{{display:table-header-group}}
   .presenceUsersTable tr{{break-inside:avoid;page-break-inside:avoid}}
