@@ -63,6 +63,10 @@ LOGO_EIFFAGE_SQUARE_PATH = os.getenv(
     "METRONOME_LOGO_EIFFAGE_SQUARE",
     r"C:\tempo-cr\Carré eiffage.png",
 )
+LOGO_EIFFAGE_SQUARE_90_PATH = os.getenv(
+    "METRONOME_LOGO_EIFFAGE_SQUARE_90",
+    r"C:\tempo-cr\Carré eiffage 90.png",
+)
 DOCUMENTS_PATH = os.getenv(
     "METRONOME_DOCUMENTS",
     r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Documents.csv",
@@ -2206,14 +2210,16 @@ body{{padding:14px 14px 14px 280px;}}
 @media print{{.topPage{{margin:0;}}}}
 .reportTables{{margin-top:0}}
 .coverLayout{{display:flex;flex-direction:column;gap:20px;padding:16mm 6mm 0 6mm}}
+.coverPresence{{margin-top:16px}}
 .coverHeader{{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}}
 .coverBrand{{display:flex;flex-direction:column;gap:10px;max-width:70%}}
 .coverSquare{{display:flex;align-items:flex-start;justify-content:flex-end}}
 .coverLogo{{height:78px;width:auto;display:block}}
-.coverSquareLogo{{height:62px;width:auto;display:block}}
+.coverSquareLogo{{height:92px;width:auto;display:block}}
+.coverFooterMark{{height:32px;width:auto;display:block}}
 .coverMeetingLine{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;font-weight:700;color:#111}}
 .coverDocRef{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;font-weight:700;color:#111}}
-.coverTitleBlock{{text-align:center;font-weight:900;display:flex;flex-direction:column;align-items:center;gap:6px}}
+.coverTitleBlock{{text-align:right;font-weight:900;display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-top:18px}}
 .coverTitle{{font-size:22px;font-weight:900;color:#111;letter-spacing:.4px}}
 .coverSubtitle{{font-size:22px;font-weight:900;color:#111;letter-spacing:.4px}}
 .editInline{{display:inline-block;min-width:40px;padding:0 4px;border-bottom:2px dashed #cbd5e1;outline:none}}
@@ -2418,6 +2424,7 @@ body{{padding:14px 14px 14px 280px;}}
     # Banner / cover HTML
     logo_eiffage = _logo_data_url(LOGO_EIFFAGE_PATH)
     logo_eiffage_square = _logo_data_url(LOGO_EIFFAGE_SQUARE_PATH)
+    logo_eiffage_square_90 = _logo_data_url(LOGO_EIFFAGE_SQUARE_90_PATH)
     cover_html = ""
 
     cr_date_txt = (meet_date or ref_date).strftime("%d/%m/%Y")
@@ -2438,11 +2445,13 @@ body{{padding:14px 14px 14px 280px;}}
             {("<img class='coverSquareLogo' src='" + logo_eiffage_square + "' alt='EIFFAGE' />") if logo_eiffage_square else ""}
           </div>
         </div>
+        <div class='coverPresence'>
+          {presence_html}
+        </div>
         <div class='coverTitleBlock'>
           <div class='coverTitle' contenteditable='true'>- Compte Rendu -</div>
           <div class='coverSubtitle' contenteditable='true'>{_escape(project)}</div>
         </div>
-        {presence_html}
       </div>
     """
 
@@ -2525,7 +2534,9 @@ body{{padding:14px 14px 14px 280px;}}
         {top_html}
       </div>
       <div class="docFooter">
-        <div class="footCenter" contenteditable="true" data-sync="doc-ref">{_escape(document_ref_default)}</div>
+        <div class="footCenter">
+          {("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}
+        </div>
       </div>
     </section>
 
@@ -2542,7 +2553,9 @@ body{{padding:14px 14px 14px 280px;}}
           </div>
         </div>
         <div class="docFooter">
-          <div class="footCenter" contenteditable="true" data-sync="doc-ref">{_escape(document_ref_default)}</div>
+          <div class="footCenter">
+            {("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}
+          </div>
         </div>
       </section>
     </div>
@@ -2557,7 +2570,9 @@ body{{padding:14px 14px 14px 280px;}}
         </div>
       </div>
       <div class="docFooter">
-        <div class="footCenter" contenteditable="true" data-sync="doc-ref">{_escape(document_ref_default)}</div>
+        <div class="footCenter">
+          {("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}
+        </div>
       </div>
     </section>
   </template>
