@@ -1676,7 +1676,7 @@ def render_home(project: Optional[str] = None, print_mode: bool = False) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>EIFFAGE • CR Synthèse</title>
 <style>
-:root{{--text:#0b1220;--muted:#475569;--border:#e2e8f0;--soft:#f8fafc;--shadow:0 10px 30px rgba(2,6,23,.06);--accent:#e30613;}}
+:root{{--text:#0b1220;--muted:#475569;--border:#e2e8f0;--soft:#f8fafc;--shadow:0 10px 30px rgba(2,6,23,.06);--accent:#ff0000;}}
 *{{box-sizing:border-box}}
 body{{margin:0;background:#fff;color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial;}}
 .wrap{{max-width:1100px;margin:0 auto;padding:26px;}}
@@ -1762,7 +1762,7 @@ def render_missing_data_page(err: MissingDataError) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Erreur de données — EIFFAGE</title>
   <style>
-    :root{{--text:#0b1220;--muted:#475569;--border:#e2e8f0;--soft:#f8fafc;--shadow:0 10px 30px rgba(2,6,23,.06);--accent:#e30613;}}
+    :root{{--text:#0b1220;--muted:#475569;--border:#e2e8f0;--soft:#f8fafc;--shadow:0 10px 30px rgba(2,6,23,.06);--accent:#ff0000;}}
     *{{box-sizing:border-box}}
     body{{margin:0;background:#fff;color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial;}}
     .wrap{{max-width:900px;margin:0 auto;padding:26px;}}
@@ -2331,8 +2331,8 @@ def render_cr(
   --border:#e2e8f0;
   --soft:#f8fafc;
   --shadow:0 10px 30px rgba(2,6,23,.06);
-  --accent:#e30613;
-  --brand-red:#e30613;
+  --accent:#ff0000;
+  --brand-red:#ff0000;
   --blueSoft:#eff6ff;
   --blueBorder:#bfdbfe;
   --col-type:7%;
