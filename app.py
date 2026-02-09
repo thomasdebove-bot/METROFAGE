@@ -1318,6 +1318,46 @@ SYNC_EDITABLE_JS = r"""
 })();
 """
 
+PRESENCE_RESIZE_JS = r"""
+(function(){
+  const table = document.querySelector('.presenceUsersTable');
+  if(!table) return;
+  const grips = table.querySelectorAll('.presenceGrip');
+  const cols = table.querySelectorAll('colgroup col');
+  if(!grips.length || !cols.length) return;
+  let active = null;
+  let startX = 0;
+  let startWidth = 0;
+  function onMove(e){
+    if(active === null) return;
+    const dx = e.clientX - startX;
+    const tableWidth = table.getBoundingClientRect().width || 1;
+    const col = cols[active];
+    const startPct = startWidth;
+    const deltaPct = (dx / tableWidth) * 100;
+    const next = Math.max(3, startPct + deltaPct);
+    col.style.width = `${next}%`;
+  }
+  function onUp(){
+    active = null;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  grips.forEach(grip => {
+    grip.addEventListener('mousedown', (e) => {
+      const idx = parseInt(grip.dataset.col || '0', 10);
+      if(Number.isNaN(idx)) return;
+      active = idx;
+      startX = e.clientX;
+      const current = (cols[idx].style.width || '').replace('%','');
+      startWidth = parseFloat(current || '0');
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+})();
+"""
+
 RANGE_PICKER_JS = r"""
 function toggleRangePanel(){
   const panel = document.getElementById('rangePanel');
@@ -1733,10 +1773,10 @@ def render_home(project: Optional[str] = None, print_mode: bool = False) -> str:
 body{{margin:0;background:#fff;color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial;}}
 .wrap{{max-width:1100px;margin:0 auto;padding:26px;}}
 .card{{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px;}}
-.brandline{{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;margin-bottom:12px}}
+.brandline{{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}}
 .brandLogo{{height:44px;width:auto;display:block}}
-.brandLogoTempo{{height:56px;width:auto;display:block}}
-.brandText{{text-align:left;justify-self:start}}
+.brandLogoTempo{{height:64px;width:auto;display:block}}
+.brandText{{text-align:left;flex:1}}
 .homeLogo{{height:44px;width:auto;display:block}}
 .homeLogoText{{font-weight:1000;letter-spacing:.18em;font-size:20px}}
 .tag{{color:var(--muted);font-weight:800}}
@@ -1992,15 +2032,16 @@ def render_cr(
             user_id = str(it.get("id", "")).strip()
             company_id = str(it.get("company_id", "")).strip()
             name = _escape(it.get("name", ""))
-            email = _escape(it.get("email", ""))
+            email = _escape((it.get("email", "") or "").lower())
             company_info = company_map.get(company_id, {})
-            company_name = str(company_info.get("name", "")).strip().upper()
+            fallback_company = str(company_info.get("name", "")).strip()
+            raw_company_name = str(it.get("company_name", "")).strip() or fallback_company
+            company_name = raw_company_name.upper()
             lot_list = lots_map.get(user_id, [])
             if company_name == "TEMPO":
                 lot_list = ["SYNTHESE"]
             if name.strip().upper() == "MATHIEU DUVAL":
-                if "SYNTHESE" not in lot_list:
-                    lot_list = lot_list + ["SYNTHESE"]
+                lot_list = ["SYNTHESE"]
             lot_display = _escape(", ".join(lot_list)) if lot_list else "—"
             company_logo = company_info.get("logo", "")
             logo_html = (
@@ -2041,6 +2082,7 @@ def render_cr(
             last_col = _find_col(users_df, [["last"], ["nom"]])
             email_col = _find_col(users_df, [["mail"], ["email"]])
             company_col = _find_col(users_df, [["company", "id"]])
+            company_name_col = _find_col(users_df, [["company", "name"], ["entreprise"], ["societe"], ["société"]])
             items: List[Dict[str, str]] = []
             for _, row in users_df.iterrows():
                 user_id = str(row.get(id_col, "")).strip() if id_col else ""
@@ -2059,7 +2101,16 @@ def render_cr(
                     has_lot = True
                 email = str(row.get(email_col, "")).strip() if email_col else ""
                 company_id = str(row.get(company_col, "")).strip() if company_col else ""
-                items.append({"id": user_id, "name": full_name, "email": email, "company_id": company_id})
+                company_name = str(row.get(company_name_col, "")).strip() if company_name_col else ""
+                items.append(
+                    {
+                        "id": user_id,
+                        "name": full_name,
+                        "email": email,
+                        "company_id": company_id,
+                        "company_name": company_name,
+                    }
+                )
             items.sort(
                 key=lambda x: (
                     ",".join(packages_map.get(str(x.get("id", "")).strip(), [])),
@@ -2076,21 +2127,21 @@ def render_cr(
       <div class="presenceWrap">
         <table class="annexTable coverTable presenceTable presenceUsersTable">
           <colgroup>
-            <col style="width:34%" />
-            <col style="width:16%" />
-            <col style="width:26%" />
-            <col style="width:8%" />
-            <col style="width:8%" />
-            <col style="width:8%" />
+            <col style="width:60mm" />
+            <col style="width:28mm" />
+            <col style="width:70mm" />
+            <col style="width:8mm" />
+            <col style="width:8mm" />
+            <col style="width:8mm" />
           </colgroup>
           <thead>
             <tr>
-              <th>Prénom et Nom</th>
-              <th>Lot</th>
-              <th>Mail</th>
-              <th>C</th>
-              <th>P</th>
-              <th>D</th>
+              <th>Prénom et Nom <span class="presenceGrip" data-col="0"></span></th>
+              <th>Lot <span class="presenceGrip" data-col="1"></span></th>
+              <th>Mail <span class="presenceGrip" data-col="2"></span></th>
+              <th>C <span class="presenceGrip" data-col="3"></span></th>
+              <th>P <span class="presenceGrip" data-col="4"></span></th>
+              <th>D <span class="presenceGrip" data-col="5"></span></th>
             </tr>
           </thead>
           <tbody>
@@ -2661,6 +2712,10 @@ body{{padding:14px 14px 14px 280px;}}
 .presenceUsersTable td{{vertical-align:middle}}
 .presenceUsersTable .presenceFlag{{min-height:18px}}
 .presenceName{{display:inline-flex;align-items:center;gap:6px}}
+.presenceUsersTable th{{position:relative;padding-right:18px}}
+.presenceGrip{{position:absolute;top:0;right:-6px;width:12px;height:100%;cursor:col-resize}}
+.presenceGrip::after{{content:"";position:absolute;top:3px;bottom:3px;left:5px;width:2px;background:#1d4ed8;border-radius:2px;opacity:1}}
+.presenceUsersTable th:hover .presenceGrip::after{{background:#0f172a}}
 .docFooter{{position:absolute;left:0;right:0;bottom:0;height:20mm;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3mm 10mm;border-top:2px solid var(--brand-red);background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
 .footLeft,.footCenter,.footRight{{position:absolute;z-index:2}}
 .footLeft{{left:0}}
@@ -2679,6 +2734,7 @@ body{{padding:14px 14px 14px 280px;}}
   .pageContent{{padding-top:20mm;padding-bottom:20mm;}}
   .reportHeader{{position:fixed;top:0;left:0;right:0;background:#fff;padding:4mm 8mm 2mm 8mm;z-index:20;}}
   .docFooter{{position:fixed;bottom:0;left:0;right:0;}}
+  .presenceGrip{{display:none!important}}
 }}
 
 {EDITOR_MEMO_MODAL_CSS}
@@ -2855,6 +2911,7 @@ body{{padding:14px 14px 14px 280px;}}
 <script>{QUALITY_MODAL_JS}</script>
 <script>{ANALYSIS_MODAL_JS}</script>
 <script>{SYNC_EDITABLE_JS}</script>
+<script>{PRESENCE_RESIZE_JS}</script>
 <script>{RANGE_PICKER_JS}</script>
 <script>{LAYOUT_CONTROLS_JS}</script>
 <script>{PAGINATION_JS}</script>
