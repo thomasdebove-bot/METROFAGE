@@ -67,6 +67,14 @@ LOGO_EIFFAGE_SQUARE_90_PATH = os.getenv(
     "METRONOME_LOGO_EIFFAGE_SQUARE_90",
     r"C:\tempo-cr\Carré eiffage 90.png",
 )
+USERS_PATH = os.getenv(
+    "METRONOME_USERS",
+    r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Users.csv",
+)
+PACKAGES_PATH = os.getenv(
+    "METRONOME_PACKAGES",
+    r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Packages.csv",
+)
 DOCUMENTS_PATH = os.getenv(
     "METRONOME_DOCUMENTS",
     r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Documents.csv",
@@ -134,6 +142,8 @@ _cache = {
     "meetings": (None, None),
     "companies": (None, None),
     "projects": (None, None),
+    "users": (None, None),
+    "packages": (None, None),
     "documents": (None, None),
 }
 
@@ -212,6 +222,26 @@ def get_documents() -> pd.DataFrame:
     return df
 
 
+def get_users() -> pd.DataFrame:
+    m = _mtime(USERS_PATH)
+    old_m, df = _cache["users"]
+    if df is None or m != old_m:
+        _require_csv(USERS_PATH, "Users", "METRONOME_USERS")
+        df = _load_csv(USERS_PATH)
+        _cache["users"] = (m, df)
+    return df
+
+
+def get_packages() -> pd.DataFrame:
+    m = _mtime(PACKAGES_PATH)
+    old_m, df = _cache["packages"]
+    if df is None or m != old_m:
+        _require_csv(PACKAGES_PATH, "Packages", "METRONOME_PACKAGES")
+        df = _load_csv(PACKAGES_PATH)
+        _cache["packages"] = (m, df)
+    return df
+
+
 # -------------------------
 # UTILITIES
 # -------------------------
@@ -226,6 +256,22 @@ def _escape(s) -> str:
         .replace('"', "&quot;")
         .replace("'", "&#039;")
     )
+
+
+def _find_col(df: pd.DataFrame, candidates: List[List[str]]) -> Optional[str]:
+    for tokens in candidates:
+        for col in df.columns:
+            col_lower = str(col).lower()
+            if all(token in col_lower for token in tokens):
+                return col
+    return None
+
+
+def _normalize_list_cell(value: str) -> List[str]:
+    if not value:
+        return []
+    parts = re.split(r"[;,/]+", value)
+    return [p.strip() for p in parts if p.strip()]
 
 
 def _series(df: pd.DataFrame, col: str, default) -> pd.Series:
@@ -619,6 +665,45 @@ def compute_presence_lists(mrow: pd.Series) -> Tuple[List[Dict], List[Dict]]:
         return items
 
     return _to_items(attending_ids), _to_items(missing_ids)
+
+
+def users_for_project(project_title: str) -> pd.DataFrame:
+    users = get_users().copy()
+    if users.empty:
+        return users
+    project_col = _find_col(users, [["project", "title"], ["project"], ["projects"]])
+    if project_col:
+        users[project_col] = users[project_col].fillna("").astype(str)
+        mask = users[project_col].apply(
+            lambda cell: project_title in _normalize_list_cell(str(cell))
+        )
+        users = users.loc[mask].copy()
+    return users
+
+
+def packages_by_user(project_title: str) -> Dict[str, List[str]]:
+    packages = get_packages().copy()
+    if packages.empty:
+        return {}
+    project_col = _find_col(packages, [["project", "title"], ["project"], ["projects"]])
+    if project_col:
+        packages[project_col] = packages[project_col].fillna("").astype(str)
+        packages = packages.loc[
+            packages[project_col].apply(lambda cell: project_title in _normalize_list_cell(str(cell)))
+        ].copy()
+    user_col = _find_col(packages, [["user"], ["owner"], ["responsable"], ["person"]])
+    lot_col = _find_col(packages, [["package"], ["lot"], ["name"]])
+    if not user_col or not lot_col:
+        return {}
+    out: Dict[str, List[str]] = {}
+    for _, row in packages.iterrows():
+        user_raw = str(row.get(user_col, "")).strip()
+        lot_raw = str(row.get(lot_col, "")).strip()
+        if not user_raw or not lot_raw:
+            continue
+        key = _norm_name(user_raw)
+        out.setdefault(key, []).append(lot_raw)
+    return out
 
 
 # -------------------------
@@ -1843,24 +1928,71 @@ def render_cr(
     kpi_table_html = ""
     reminders_kpi_html = ""
 
-    def render_presence_rows(items: List[Dict], label: str) -> str:
+    def render_presence_rows(items: List[Dict], lots_map: Dict[str, List[str]]) -> str:
         if not items:
-            return f"<tr><td>{_escape(label)} (0)</td><td class='muted'>—</td></tr>"
+            return "<tr><td colspan='6' class='muted'>—</td></tr>"
         rows = []
         for it in items:
             name = _escape(it.get("name", ""))
-            rows.append(f"<li class='presenceLine'><span>{name}</span></li>")
-        return f"<tr><td>{_escape(label)} ({len(items)})</td><td><ul class='presenceList'>{''.join(rows)}</ul></td></tr>"
+            email = _escape(it.get("email", ""))
+            lot_list = lots_map.get(_norm_name(name), [])
+            lot_display = _escape(", ".join(lot_list)) if lot_list else "—"
+            rows.append(
+                f\"\"\"\n            <tr>\n              <td>{name}</td>\n              <td>{lot_display}</td>\n              <td>{email or \"—\"}</td>\n              <td class='presenceFlag editableCell' contenteditable='true'></td>\n              <td class='presenceFlag editableCell' contenteditable='true'></td>\n              <td class='presenceFlag editableCell' contenteditable='true'></td>\n            </tr>\n                \"\"\"\n            )
+        return \"\".join(rows)
+
+    users_presence_rows = ""
+    try:
+        users_df = users_for_project(project)
+        packages_map = packages_by_user(project)
+        if not users_df.empty:
+            name_col = _find_col(users_df, [["full", "name"], ["name"], ["nom"]])
+            first_col = _find_col(users_df, [["first"], ["prenom"]])
+            last_col = _find_col(users_df, [["last"], ["nom"]])
+            email_col = _find_col(users_df, [["mail"], ["email"]])
+            items: List[Dict[str, str]] = []
+            for _, row in users_df.iterrows():
+                full_name = ""
+                if name_col:
+                    full_name = str(row.get(name_col, "")).strip()
+                if not full_name:
+                    first = str(row.get(first_col, "")).strip() if first_col else ""
+                    last = str(row.get(last_col, "")).strip() if last_col else ""
+                    full_name = " ".join([p for p in [first, last] if p]).strip()
+                if not full_name:
+                    continue
+                email = str(row.get(email_col, "")).strip() if email_col else ""
+                items.append({"name": full_name, "email": email})
+            items.sort(key=lambda x: (x.get("name", "").lower()))
+            users_presence_rows = render_presence_rows(items, packages_map)
+        else:
+            users_presence_rows = render_presence_rows([], {})
+    except MissingDataError:
+        users_presence_rows = render_presence_rows([], {})
 
     presence_html = f"""
       <div class="presenceWrap">
-        <table class="annexTable coverTable presenceTable">
+        <table class="annexTable coverTable presenceTable presenceUsersTable">
+          <colgroup>
+            <col style="width:34%" />
+            <col style="width:16%" />
+            <col style="width:26%" />
+            <col style="width:8%" />
+            <col style="width:8%" />
+            <col style="width:8%" />
+          </colgroup>
           <thead>
-            <tr><th>Type</th><th>Entreprises</th></tr>
+            <tr>
+              <th>Prénom et Nom</th>
+              <th>Lot</th>
+              <th>Mail</th>
+              <th>C</th>
+              <th>P</th>
+              <th>D</th>
+            </tr>
           </thead>
           <tbody>
-            {render_presence_rows(att, "Présentes")}
-            {render_presence_rows(miss, "Absentes / Excusées")}
+            {users_presence_rows}
           </tbody>
         </table>
       </div>
@@ -2417,10 +2549,20 @@ body{{padding:14px 14px 14px 280px;}}
 .reportHeader .accent{{color:var(--brand-red);font-weight:900}}
 .presenceTable .presenceList{{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px}}
 .presenceTable .presenceLine{{display:flex;align-items:center;gap:8px;font-weight:700}}
+.presenceUsersTable th{{text-align:left}}
+.presenceUsersTable th:nth-child(4),
+.presenceUsersTable th:nth-child(5),
+.presenceUsersTable th:nth-child(6),
+.presenceUsersTable td:nth-child(4),
+.presenceUsersTable td:nth-child(5),
+.presenceUsersTable td:nth-child(6){{text-align:center}}
+.presenceUsersTable td{{vertical-align:middle}}
+.presenceUsersTable .presenceFlag{{min-height:18px}}
 .docFooter{{position:absolute;left:0;right:0;bottom:0;height:20mm;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3mm 10mm;border-top:2px solid var(--brand-red);background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
-.footLeft,.footCenter,.footRight{{position:relative;z-index:2}}
-.footCenter{{text-align:center;flex:1;display:flex;align-items:center;justify-content:center;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:11px;font-weight:700;color:#111}}
-.footRight{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:9px;font-weight:700;color:#111;min-width:70px;text-align:right}}
+.footLeft,.footCenter,.footRight{{position:absolute;z-index:2}}
+.footLeft{{left:0}}
+.footCenter{{left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:11px;font-weight:700;color:#111}}
+.footRight{{right:10mm;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:9px;font-weight:700;color:#111;min-width:70px;text-align:right}}
 .footPageNumber{{display:inline-block}}
 .tempoLegal{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:10px;line-height:1.3;color:#6b7280;font-weight:600}}
 .footImg{{display:block;max-height:32px;width:auto}}
