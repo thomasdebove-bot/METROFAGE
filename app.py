@@ -67,6 +67,10 @@ LOGO_EIFFAGE_SQUARE_90_PATH = os.getenv(
     "METRONOME_LOGO_EIFFAGE_SQUARE_90",
     r"C:\tempo-cr\Carré eiffage 90.png",
 )
+ODS_PATH = os.getenv(
+    "METRONOME_ODS",
+    r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\DATA-MÉTRONOME.ods",
+)
 USERS_PATH = os.getenv(
     "METRONOME_USERS",
     r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Users.csv",
@@ -83,6 +87,18 @@ COMMENTS_PATH = os.getenv(
     "METRONOME_COMMENTS",
     r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Comments.csv",
 )
+
+# -------------------------
+# ODS SHEET NAMES
+# -------------------------
+ODS_SHEET_USERS = "Users"
+ODS_SHEET_PROJECTS = "Projects"
+ODS_SHEET_ENTRIES = "EntriesTasks&Memos"
+ODS_SHEET_DOCUMENTS = "Documents"
+ODS_SHEET_PACKAGES = "Packages"
+ODS_SHEET_COMPANIES = "Companies"
+ODS_SHEET_MEETINGS = "Meetings"
+ODS_SHEET_COMMENTS = "Comments"
 
 # -------------------------
 # COLUMN NAMES (METRONOME EXPORTS)
@@ -145,6 +161,8 @@ _cache = {
     "users": (None, None),
     "packages": (None, None),
     "documents": (None, None),
+    "comments": (None, None),
+    "ods": (None, None),
 }
 
 
@@ -167,12 +185,40 @@ def _load_csv(path: str) -> pd.DataFrame:
     return pd.read_csv(path, encoding="utf-8-sig")
 
 
+def _load_ods_sheet(path: str, sheet_name: str) -> pd.DataFrame:
+    return pd.read_excel(path, sheet_name=sheet_name, engine="odf")
+
+
 def _require_csv(path: str, label: str, env_var: str) -> None:
     if not os.path.exists(path):
         raise MissingDataError(label=label, path=path, env_var=env_var)
 
 
+def _ods_available() -> bool:
+    return bool(ODS_PATH) and os.path.exists(ODS_PATH)
+
+
+def _ods_mtime() -> float:
+    return _mtime(ODS_PATH) if _ods_available() else -1.0
+
+
+def _load_from_ods(sheet_name: str) -> Optional[pd.DataFrame]:
+    if not _ods_available():
+        return None
+    ods_mtime = _ods_mtime()
+    cache_mtime, cache_data = _cache.get("ods", (None, None))
+    if cache_data is None or cache_mtime != ods_mtime:
+        cache_data = {}
+        _cache["ods"] = (ods_mtime, cache_data)
+    if sheet_name not in cache_data:
+        cache_data[sheet_name] = _load_ods_sheet(ODS_PATH, sheet_name)
+    return cache_data[sheet_name].copy()
+
+
 def get_entries() -> pd.DataFrame:
+    ods_df = _load_from_ods(ODS_SHEET_ENTRIES)
+    if ods_df is not None:
+        return ods_df
     m = _mtime(ENTRIES_PATH)
     old_m, df = _cache["entries"]
     if df is None or m != old_m:
@@ -183,6 +229,9 @@ def get_entries() -> pd.DataFrame:
 
 
 def get_meetings() -> pd.DataFrame:
+    ods_df = _load_from_ods(ODS_SHEET_MEETINGS)
+    if ods_df is not None:
+        return ods_df
     m = _mtime(MEETINGS_PATH)
     old_m, df = _cache["meetings"]
     if df is None or m != old_m:
@@ -193,6 +242,9 @@ def get_meetings() -> pd.DataFrame:
 
 
 def get_companies() -> pd.DataFrame:
+    ods_df = _load_from_ods(ODS_SHEET_COMPANIES)
+    if ods_df is not None:
+        return ods_df
     m = _mtime(COMPANIES_PATH)
     old_m, df = _cache["companies"]
     if df is None or m != old_m:
@@ -203,6 +255,9 @@ def get_companies() -> pd.DataFrame:
 
 
 def get_projects() -> pd.DataFrame:
+    ods_df = _load_from_ods(ODS_SHEET_PROJECTS)
+    if ods_df is not None:
+        return ods_df
     m = _mtime(PROJECTS_PATH)
     old_m, df = _cache["projects"]
     if df is None or m != old_m:
@@ -213,6 +268,9 @@ def get_projects() -> pd.DataFrame:
 
 
 def get_documents() -> pd.DataFrame:
+    ods_df = _load_from_ods(ODS_SHEET_DOCUMENTS)
+    if ods_df is not None:
+        return ods_df
     m = _mtime(DOCUMENTS_PATH)
     old_m, df = _cache["documents"]
     if df is None or m != old_m:
@@ -222,7 +280,23 @@ def get_documents() -> pd.DataFrame:
     return df
 
 
+def get_comments() -> pd.DataFrame:
+    ods_df = _load_from_ods(ODS_SHEET_COMMENTS)
+    if ods_df is not None:
+        return ods_df
+    m = _mtime(COMMENTS_PATH)
+    old_m, df = _cache.get("comments", (None, None))
+    if df is None or m != old_m:
+        _require_csv(COMMENTS_PATH, "Comments", "METRONOME_COMMENTS")
+        df = _load_csv(COMMENTS_PATH)
+        _cache["comments"] = (m, df)
+    return df
+
+
 def get_users() -> pd.DataFrame:
+    ods_df = _load_from_ods(ODS_SHEET_USERS)
+    if ods_df is not None:
+        return ods_df
     m = _mtime(USERS_PATH)
     old_m, df = _cache["users"]
     if df is None or m != old_m:
@@ -233,6 +307,9 @@ def get_users() -> pd.DataFrame:
 
 
 def get_packages() -> pd.DataFrame:
+    ods_df = _load_from_ods(ODS_SHEET_PACKAGES)
+    if ods_df is not None:
+        return ods_df
     m = _mtime(PACKAGES_PATH)
     old_m, df = _cache["packages"]
     if df is None or m != old_m:
