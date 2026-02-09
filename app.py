@@ -690,10 +690,7 @@ def users_for_project(project_title: str) -> pd.DataFrame:
     project_col = _find_col(users, [["project", "title"], ["project"], ["projects"]])
     if project_col:
         users[project_col] = users[project_col].fillna("").astype(str)
-        mask = users[project_col].apply(
-            lambda cell: project_title in _normalize_list_cell(str(cell))
-        )
-        users = users.loc[mask].copy()
+        users = users.loc[users[project_col].str.contains(project_title, case=False, na=False)].copy()
     return users
 
 
@@ -704,29 +701,25 @@ def packages_by_user(project_title: str) -> Dict[str, List[str]]:
     project_col = _find_col(packages, [["project", "title"], ["project"], ["projects"]])
     if project_col:
         packages[project_col] = packages[project_col].fillna("").astype(str)
-        packages = packages.loc[
-            packages[project_col].apply(lambda cell: project_title in _normalize_list_cell(str(cell)))
-        ].copy()
-    user_col = _find_col(
-        packages,
-        [
-            ["managers", "ids"],
-            ["managers", "package managers", "ids"],
-            ["managers", "project managers", "ids"],
-            ["manager", "ids"],
-            ["managers"],
-        ],
-    )
+        packages = packages.loc[packages[project_col].str.contains(project_title, case=False, na=False)].copy()
+    user_cols = [
+        _find_col(packages, [["managers", "package managers", "ids"]]),
+        _find_col(packages, [["managers", "project managers", "ids"]]),
+        _find_col(packages, [["managers", "ids"]]),
+    ]
+    user_cols = [c for c in user_cols if c]
     lot_col = _find_col(packages, [["name", "text"], ["name", "with company"], ["name"]])
-    if not user_col or not lot_col:
+    if not user_cols or not lot_col:
         return {}
     out: Dict[str, List[str]] = {}
     for _, row in packages.iterrows():
-        user_raw = str(row.get(user_col, "")).strip()
         lot_raw = str(row.get(lot_col, "")).strip()
-        if not user_raw or not lot_raw:
+        if not lot_raw:
             continue
-        for uid in _parse_ids(user_raw):
+        manager_ids: List[str] = []
+        for col in user_cols:
+            manager_ids.extend(_parse_ids(row.get(col)))
+        for uid in set(mid for mid in manager_ids if mid):
             out.setdefault(uid, []).append(lot_raw)
     return out
 
@@ -1717,8 +1710,9 @@ def render_home(project: Optional[str] = None, print_mode: bool = False) -> str:
 body{{margin:0;background:#fff;color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial;}}
 .wrap{{max-width:1100px;margin:0 auto;padding:26px;}}
 .card{{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px;}}
-.brandline{{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}}
+.brandline{{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;margin-bottom:12px}}
 .brandLogo{{height:44px;width:auto;display:block}}
+.brandText{{text-align:left;justify-self:start}}
 .homeLogo{{height:44px;width:auto;display:block}}
 .homeLogoText{{font-weight:1000;letter-spacing:.18em;font-size:20px}}
 .tag{{color:var(--muted);font-weight:800}}
@@ -1736,7 +1730,7 @@ select{{width:100%;padding:12px 12px;border-radius:12px;border:1px solid var(--b
     <div class="card">
       <div class="brandline">
         {left_logo}
-        <div>
+        <div class="brandText">
           <div style="font-weight:1000">Compte-rendu • Réunion de synthèse</div>
           <div class="tag">Application EIFFAGE</div>
         </div>
@@ -1966,20 +1960,27 @@ def render_cr(
     kpi_table_html = ""
     reminders_kpi_html = ""
 
-    def render_presence_rows(items: List[Dict], lots_map: Dict[str, List[str]]) -> str:
+    def render_presence_rows(items: List[Dict], lots_map: Dict[str, List[str]], company_map: Dict[str, Dict[str, str]]) -> str:
         if not items:
             return "<tr><td colspan='6' class='muted'>—</td></tr>"
         rows = []
         for it in items:
             user_id = str(it.get("id", "")).strip()
+            company_id = str(it.get("company_id", "")).strip()
             name = _escape(it.get("name", ""))
             email = _escape(it.get("email", ""))
             lot_list = lots_map.get(user_id, [])
             lot_display = _escape(", ".join(lot_list)) if lot_list else "—"
+            company_logo = company_map.get(company_id, {}).get("logo", "")
+            logo_html = (
+                f"<img class='coLogo' src='{_escape(company_logo)}' alt='' loading='lazy' />"
+                if company_logo and company_logo.startswith("http")
+                else ""
+            )
             rows.append(
                 f"""
             <tr>
-              <td>{name}</td>
+              <td><span class='presenceName'>{logo_html}{name}</span></td>
               <td>{lot_display}</td>
               <td>{email or "—"}</td>
               <td class='presenceFlag editableCell' contenteditable='true'></td>
@@ -1994,12 +1995,14 @@ def render_cr(
     try:
         users_df = users_for_project("MDZ")
         packages_map = packages_by_user("MDZ")
+        company_map = companies_map_by_id()
         if not users_df.empty:
             id_col = _find_col(users_df, [["row id"], ["id"]])
             name_col = _find_col(users_df, [["full", "name"], ["name"], ["nom"]])
             first_col = _find_col(users_df, [["first"], ["prenom"]])
             last_col = _find_col(users_df, [["last"], ["nom"]])
             email_col = _find_col(users_df, [["mail"], ["email"]])
+            company_col = _find_col(users_df, [["company", "id"]])
             items: List[Dict[str, str]] = []
             for _, row in users_df.iterrows():
                 user_id = str(row.get(id_col, "")).strip() if id_col else ""
@@ -2016,14 +2019,15 @@ def render_cr(
                     has_lot = user_id in packages_map
                 else:
                     has_lot = True
-            email = str(row.get(email_col, "")).strip() if email_col else ""
-            items.append({"id": user_id, "name": full_name, "email": email})
+                email = str(row.get(email_col, "")).strip() if email_col else ""
+                company_id = str(row.get(company_col, "")).strip() if company_col else ""
+                items.append({"id": user_id, "name": full_name, "email": email, "company_id": company_id})
             items.sort(key=lambda x: (x.get("name", "").lower()))
-            users_presence_rows = render_presence_rows(items, packages_map)
+            users_presence_rows = render_presence_rows(items, packages_map, company_map)
         else:
-            users_presence_rows = render_presence_rows([], {})
+            users_presence_rows = render_presence_rows([], {}, {})
     except MissingDataError:
-        users_presence_rows = render_presence_rows([], {})
+        users_presence_rows = render_presence_rows([], {}, {})
 
     presence_html = f"""
       <div class="presenceWrap">
@@ -2613,6 +2617,7 @@ body{{padding:14px 14px 14px 280px;}}
 .presenceUsersTable td:nth-child(6){{text-align:center}}
 .presenceUsersTable td{{vertical-align:middle}}
 .presenceUsersTable .presenceFlag{{min-height:18px}}
+.presenceName{{display:inline-flex;align-items:center;gap:6px}}
 .docFooter{{position:absolute;left:0;right:0;bottom:0;height:20mm;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3mm 10mm;border-top:2px solid var(--brand-red);background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
 .footLeft,.footCenter,.footRight{{position:absolute;z-index:2}}
 .footLeft{{left:0}}
