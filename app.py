@@ -1716,7 +1716,7 @@ def render_home(project: Optional[str] = None, print_mode: bool = False) -> str:
         else "<div class='homeLogoText'>EIFFAGE</div>"
     )
     right_logo = (
-        f"<img src='{tempo_logo}' alt='TEMPO' class='brandLogo' />"
+        f"<img src='{tempo_logo}' alt='TEMPO' class='brandLogoTempo' />"
         if tempo_logo
         else "<div class='homeLogoText'>TEMPO</div>"
     )
@@ -1735,6 +1735,7 @@ body{{margin:0;background:#fff;color:var(--text);font:14px/1.45 system-ui,-apple
 .card{{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px;}}
 .brandline{{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;margin-bottom:12px}}
 .brandLogo{{height:44px;width:auto;display:block}}
+.brandLogoTempo{{height:56px;width:auto;display:block}}
 .brandText{{text-align:left;justify-self:start}}
 .homeLogo{{height:44px;width:auto;display:block}}
 .homeLogoText{{font-weight:1000;letter-spacing:.18em;font-size:20px}}
@@ -1992,9 +1993,16 @@ def render_cr(
             company_id = str(it.get("company_id", "")).strip()
             name = _escape(it.get("name", ""))
             email = _escape(it.get("email", ""))
+            company_info = company_map.get(company_id, {})
+            company_name = str(company_info.get("name", "")).strip().upper()
             lot_list = lots_map.get(user_id, [])
+            if company_name == "TEMPO":
+                lot_list = ["SYNTHESE"]
+            if name.strip().upper() == "MATHIEU DUVAL":
+                if "SYNTHESE" not in lot_list:
+                    lot_list = lot_list + ["SYNTHESE"]
             lot_display = _escape(", ".join(lot_list)) if lot_list else "—"
-            company_logo = company_map.get(company_id, {}).get("logo", "")
+            company_logo = company_info.get("logo", "")
             logo_html = (
                 f"<img class='coLogo' src='{_escape(company_logo)}' alt='' loading='lazy' />"
                 if company_logo and company_logo.startswith("http")
@@ -2052,7 +2060,12 @@ def render_cr(
                 email = str(row.get(email_col, "")).strip() if email_col else ""
                 company_id = str(row.get(company_col, "")).strip() if company_col else ""
                 items.append({"id": user_id, "name": full_name, "email": email, "company_id": company_id})
-            items.sort(key=lambda x: (x.get("name", "").lower()))
+            items.sort(
+                key=lambda x: (
+                    ",".join(packages_map.get(str(x.get("id", "")).strip(), [])),
+                    (x.get("name", "").lower()),
+                )
+            )
             users_presence_rows = render_presence_rows(items, packages_map, company_map)
         else:
             users_presence_rows = render_presence_rows([], {}, {})
@@ -2659,7 +2672,14 @@ body{{padding:14px 14px 14px 280px;}}
 .footMark{{max-height:48px}}
 .footRythme{{max-height:28px;margin:6px auto 0 auto}}
 .footTempo{{max-height:28px;margin-left:auto}}
-@media print{{body{{padding:0}} .actions,.rangePanel{{display:none!important}} .page{{width:210mm;min-height:297mm;margin:0;box-shadow:none;break-after:page;page-break-after:always;}} .page:last-child{{break-after:auto;page-break-after:auto;}}}}
+@media print{{
+  body{{padding:0}}
+  .actions,.rangePanel{{display:none!important}}
+  .page{{width:210mm;min-height:297mm;height:auto;margin:0;box-shadow:none;break-after:auto;page-break-after:auto;}}
+  .pageContent{{padding-top:20mm;padding-bottom:20mm;}}
+  .reportHeader{{position:fixed;top:0;left:0;right:0;background:#fff;padding:4mm 8mm 2mm 8mm;z-index:20;}}
+  .docFooter{{position:fixed;bottom:0;left:0;right:0;}}
+}}
 
 {EDITOR_MEMO_MODAL_CSS}
 {QUALITY_MODAL_CSS}
