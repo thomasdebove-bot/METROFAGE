@@ -67,6 +67,10 @@ LOGO_EIFFAGE_SQUARE_90_PATH = os.getenv(
     "METRONOME_LOGO_EIFFAGE_SQUARE_90",
     r"C:\tempo-cr\Carré eiffage 90.png",
 )
+LOGO_TEMPO_PATH = os.getenv(
+    "METRONOME_LOGO_TEMPO",
+    r"C:\tempo-cr\Logo TEMPO.png",
+)
 USERS_PATH = os.getenv(
     "METRONOME_USERS",
     r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Users.csv",
@@ -1657,6 +1661,7 @@ def render_home(project: Optional[str] = None, print_mode: bool = False) -> str:
     m = get_meetings().copy()
     m[M_COL_PROJECT_TITLE] = m[M_COL_PROJECT_TITLE].fillna("").astype(str).str.strip()
     m = m.loc[m[M_COL_PROJECT_TITLE] != ""].copy()
+    m = m.loc[m[M_COL_PROJECT_TITLE].str.contains("MDZ", case=False, na=False)].copy()
 
     projects = sorted(m[M_COL_PROJECT_TITLE].unique().tolist(), key=lambda x: x.lower())
     if project:
@@ -1678,8 +1683,8 @@ def render_home(project: Optional[str] = None, print_mode: bool = False) -> str:
         proj = project or str(r.get(M_COL_PROJECT_TITLE, "")).strip()
         meeting_opts += f'<option value="{_escape(mid)}">{_escape(d_txt)} — {_escape(proj)}</option>'
 
-    eiffage_logo = _logo_data_url(LOGO_EIFFAGE_PATH)
-    logo_html = f"<img src='{eiffage_logo}' alt='EIFFAGE' class='homeLogo' />" if eiffage_logo else "<div class='homeLogoText'>EIFFAGE</div>"
+    tempo_logo = _logo_data_url(LOGO_TEMPO_PATH)
+    logo_html = f"<img src='{tempo_logo}' alt='TEMPO' class='homeLogo' />" if tempo_logo else "<div class='homeLogoText'>TEMPO</div>"
     return f"""
 <!doctype html>
 <html lang="fr">
@@ -1966,8 +1971,8 @@ def render_cr(
 
     users_presence_rows = ""
     try:
-        users_df = users_for_project(project)
-        packages_map = packages_by_user(project)
+        users_df = users_for_project("MDZ")
+        packages_map = packages_by_user("MDZ")
         if not users_df.empty:
             id_col = _find_col(users_df, [["row id"], ["id"]])
             name_col = _find_col(users_df, [["full", "name"], ["name"], ["nom"]])
