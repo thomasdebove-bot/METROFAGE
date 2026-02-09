@@ -2566,11 +2566,13 @@ body{{padding:14px 14px 14px 280px;}}
   font-weight:1000;font-size:16px;letter-spacing:.2px;
   border-left:6px solid var(--brand-red);
 }}
+.sectionTitle{{break-after:avoid;page-break-after:avoid;}}
 .zoneTitle{{
   display:flex;align-items:center;gap:10px;
   padding:6px 10px;border:1px solid var(--border);border-bottom:none;
   background:var(--brand-red);color:#ffffff;font-weight:900;font-size:11px;text-transform:uppercase;
 }}
+.zoneTitle{{break-after:avoid;page-break-after:avoid;}}
 .zoneTitle button{{margin-left:auto}}
 .zoneTools{{display:flex;align-items:center;gap:6px;margin-left:auto}}
 .zoneBtn{{border:1px solid #ffffff;background:#fff;border-radius:8px;padding:4px 8px;font-weight:800;cursor:pointer}}
@@ -2639,7 +2641,7 @@ body{{padding:14px 14px 14px 280px;}}
 .zoneBlock{{margin:0}}
 .zoneBlock + .zoneBlock{{margin-top:0}}
 .reportBlocks{{display:flex;flex-direction:column;gap:0}}
-.reportBlock{{break-inside:avoid;page-break-inside:avoid}}
+.reportBlock{{}}
 .reportNote{{margin-top:12px}}
 .crTable{{width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid var(--border);margin-top:-1px;}}
 .crTable thead{{display:table-header-group}}
@@ -2716,7 +2718,6 @@ body{{padding:14px 14px 14px 280px;}}
 .presenceGrip{{position:absolute;top:0;right:-6px;width:12px;height:100%;cursor:col-resize}}
 .presenceGrip::after{{content:"";position:absolute;top:3px;bottom:3px;left:5px;width:2px;background:#1d4ed8;border-radius:2px;opacity:1}}
 .presenceUsersTable th:hover .presenceGrip::after{{background:#0f172a}}
-.cr-section{{break-inside:avoid;page-break-inside:avoid}}
 .docFooter{{position:absolute;left:0;right:0;bottom:0;height:20mm;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3mm 10mm;border-top:2px solid var(--brand-red);background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
 .footLeft,.footCenter,.footRight{{position:absolute;z-index:2}}
 .footLeft{{left:0}}
