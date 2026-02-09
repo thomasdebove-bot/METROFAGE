@@ -885,6 +885,18 @@ def reminders_by_company(rem_df: pd.DataFrame) -> List[Dict]:
     return out
 
 
+def _area_sort_key(area_name: str) -> Tuple[int, str]:
+    name = (area_name or "").strip().lower()
+    priorities = {
+        "ordre du jour": 0,
+        "généralité": 1,
+        "generalite": 1,
+        "général": 2,
+        "general": 2,
+    }
+    return (priorities.get(name, 10), name)
+
+
 # -------------------------
 # ZONES (for meeting entries)
 # -------------------------
@@ -894,7 +906,7 @@ def group_meeting_by_area(edf: pd.DataFrame) -> List[Tuple[str, pd.DataFrame]]:
     areas: List[Tuple[str, pd.DataFrame]] = []
     for area, g in df.groupby("__area_list__", sort=True):
         areas.append((str(area), g.copy()))
-    areas.sort(key=lambda x: (0 if x[0].lower() == "général" else 1, x[0].lower()))
+    areas.sort(key=lambda x: _area_sort_key(x[0]))
     return areas
 
 
@@ -1404,14 +1416,15 @@ LAYOUT_CONTROLS_JS = r"""
   function closestZone(el){ return el.closest('.zoneBlock'); }
   function move(zone, dir){
     if(!zone) return;
+    if(zone.classList.contains('zoneFixed')) return;
     if(dir === 'up'){
       const prev = zone.previousElementSibling;
-      if(prev && prev.classList.contains('zoneBlock')){
+      if(prev && prev.classList.contains('zoneBlock') && !prev.classList.contains('zoneFixed')){
         zone.parentNode.insertBefore(zone, prev);
       }
     }else if(dir === 'down'){
       const next = zone.nextElementSibling;
-      if(next && next.classList.contains('zoneBlock')){
+      if(next && next.classList.contains('zoneBlock') && !next.classList.contains('zoneFixed')){
         zone.parentNode.insertBefore(next, zone);
       }
     }
@@ -1441,18 +1454,16 @@ PAGINATION_JS = r"""
     return Number.isNaN(n) ? 0 : n;
   }
 
-  function calcAvailable(page, includePresence){
+  function calcAvailable(page){
     const pageContent = page.querySelector('.pageContent');
     const footer = page.querySelector('.docFooter');
     const header = page.querySelector('.reportHeader');
-    const presence = page.querySelector('.presenceWrap');
     const pageRect = page.getBoundingClientRect();
     if(!pageContent) return pageRect.height;
     const styles = window.getComputedStyle(pageContent);
     let available = pageRect.height - px(styles.paddingTop) - px(styles.paddingBottom);
     if(footer){ available -= footer.getBoundingClientRect().height; }
     if(header){ available -= header.getBoundingClientRect().height; }
-    if(includePresence && presence){ available -= presence.getBoundingClientRect().height; }
     return available;
   }
 
@@ -1495,6 +1506,17 @@ PAGINATION_JS = r"""
     const tableOverhead = Math.max(0, tableRect - rowsSum);
     const titleHeight = title?.getBoundingClientRect().height || title?.offsetHeight || 0;
     return {rows, rowHeights, tableOverhead, titleHeight};
+  }
+
+  function getTableSplitData(block, tableSelector){
+    const table = block.querySelector(tableSelector);
+    const tbody = table?.querySelector('tbody');
+    const rows = tbody ? Array.from(tbody.children) : [];
+    const rowHeights = rows.map(row => row.getBoundingClientRect().height || row.offsetHeight || 0);
+    const tableRect = table?.getBoundingClientRect().height || table?.offsetHeight || 0;
+    const rowsSum = rowHeights.reduce((sum, h) => sum + h, 0);
+    const tableOverhead = Math.max(0, tableRect - rowsSum);
+    return {rows, rowHeights, tableOverhead, titleHeight: 0};
   }
 
   function cloneZoneShell(zone){
@@ -1541,19 +1563,27 @@ PAGINATION_JS = r"""
     const blocksContainer = firstPage.querySelector('.reportBlocks');
     if(!blocksContainer) return;
     mergeZoneBlocks(container);
-    const blocks = Array.from(container.querySelectorAll('.reportBlock')).map(block => ({
-      node: block,
-      height: block.getBoundingClientRect().height || block.offsetHeight || 0,
-      splitData: block.classList.contains('zoneBlock') ? getZoneSplitData(block) : null,
-    }));
+    const blocks = Array.from(container.querySelectorAll('.reportBlock')).map(block => {
+      const splitData = block.classList.contains('zoneBlock')
+        ? getZoneSplitData(block)
+        : (block.classList.contains('presenceBlock')
+            ? getTableSplitData(block, 'table.presenceUsersTable')
+            : null);
+      return {
+        node: block,
+        height: block.getBoundingClientRect().height || block.offsetHeight || 0,
+        splitData,
+      };
+    });
 
     blocks.forEach(({node}) => node.remove());
     clearExtraPages(container);
 
     let currentPage = firstPage;
     let currentBlocks = blocksContainer;
-    let available = calcAvailable(currentPage, true);
-    let used = 0;
+    let available = calcAvailable(currentPage);
+    const coverBlock = currentPage.querySelector('.coverBlock');
+    let used = coverBlock ? (coverBlock.getBoundingClientRect().height || coverBlock.offsetHeight || 0) : 0;
     const template = document.getElementById('report-page-template');
 
     blocks.forEach(({node, height, splitData}) => {
@@ -1566,7 +1596,7 @@ PAGINATION_JS = r"""
             container.appendChild(clone);
             currentPage = clone;
             currentBlocks = clone.querySelector('.reportBlocks');
-            available = calcAvailable(currentPage, false);
+            available = calcAvailable(currentPage);
             used = 0;
           }
           const maxHeight = Math.max(available - used, splitData.titleHeight + splitData.tableOverhead);
@@ -1576,7 +1606,7 @@ PAGINATION_JS = r"""
             container.appendChild(clone);
             currentPage = clone;
             currentBlocks = clone.querySelector('.reportBlocks');
-            available = calcAvailable(currentPage, false);
+            available = calcAvailable(currentPage);
             used = 0;
           }
           currentBlocks.appendChild(chunk);
@@ -1591,7 +1621,7 @@ PAGINATION_JS = r"""
         container.appendChild(clone);
         currentPage = clone;
         currentBlocks = clone.querySelector('.reportBlocks');
-        available = calcAvailable(currentPage, false);
+        available = calcAvailable(currentPage);
         used = 0;
       }
       currentBlocks.appendChild(node);
@@ -1983,7 +2013,7 @@ def render_cr(
     for z in sorted(extra_zones):
         if z not in zone_names:
             areas.append((z, edf.iloc[0:0].copy()))
-    areas.sort(key=lambda x: (0 if x[0].lower() == "général" else 1, x[0].lower()))
+    areas.sort(key=lambda x: _area_sort_key(x[0]))
 
     # Meeting labels for grouping rows by séance (notes/mémos/tâches)
     meetings_df = get_meetings().copy()
@@ -2148,6 +2178,12 @@ def render_cr(
             {users_presence_rows}
           </tbody>
         </table>
+      </div>
+    """
+
+    presence_block_html = f"""
+      <div class="presenceBlock reportBlock">
+        {presence_html}
       </div>
     """
 
@@ -2323,13 +2359,21 @@ def render_cr(
         if not rows_html.strip():
             return ""
         zt = _escape(area_name)
+        area_norm = str(area_name or "").strip().lower()
+        fixed_zone = area_norm in {"ordre du jour", "généralité", "generalite", "général", "general"}
+        zone_class = "zoneBlock reportBlock cr-section" + (" zoneFixed" if fixed_zone else "")
+        move_buttons = ""
+        if not fixed_zone:
+            move_buttons = """
+              <button class="zoneBtn" type="button" data-action="move-up">↑</button>
+              <button class="zoneBtn" type="button" data-action="move-down">↓</button>
+            """
         return f"""
-        <section class="zoneBlock reportBlock cr-section" data-zone-id="{zt}">
+        <section class="{zone_class}" data-zone-id="{zt}">
           <div class="zoneTitle">
             <span>{zt}</span>
             <div class="zoneTools noPrint">
-              <button class="zoneBtn" type="button" data-action="move-up">↑</button>
-              <button class="zoneBtn" type="button" data-action="move-down">↓</button>
+              {move_buttons}
               <button class="zoneBtn" type="button" data-action="highlight">Surligner</button>
                                                         <button class="btnAddMemo" type="button" data-area="{zt}">+ Ajouter mémo</button>
             </div>
@@ -2506,6 +2550,7 @@ body{{padding:14px 14px 14px 280px;}}
 @media print{{.topPage{{margin:0;}}}}
 .reportTables{{margin-top:0}}
 .coverLayout{{display:flex;flex-direction:column;gap:20px;padding:16mm 6mm 0 6mm}}
+.coverBlock{{margin-bottom:6mm;}}
 .coverPresence{{margin-top:20px}}
 .coverHeader{{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}}
 .coverBrand{{display:flex;flex-direction:column;gap:10px;max-width:70%}}
@@ -2704,6 +2749,7 @@ body{{padding:14px 14px 14px 280px;}}
 .reportHeader .accent{{color:var(--brand-red);font-weight:900}}
 .presenceTable .presenceList{{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px}}
 .presenceTable .presenceLine{{display:flex;align-items:center;gap:8px;font-weight:700}}
+.presenceBlock{{margin:8mm 0 6mm 0;}}
 .presenceUsersTable th{{text-align:left}}
 .presenceUsersTable th:nth-child(4),
 .presenceUsersTable th:nth-child(5),
@@ -2774,9 +2820,6 @@ body{{padding:14px 14px 14px 280px;}}
         <div class='coverTitleBlock'>
           <div class='coverTitle' contenteditable='true'>- Compte Rendu -</div>
           <div class='coverSubtitle' contenteditable='true'>{_escape(project)}</div>
-        </div>
-        <div class='coverPresence'>
-          {presence_html}
         </div>
       </div>
     """
@@ -2854,31 +2897,21 @@ body{{padding:14px 14px 14px 280px;}}
 <body class="{'pdf' if print_mode else ''}">
   {actions_html}
   <div class="wrap">
-    <section class="page page--cover">
-      <div class="pageContent">
-        {cover_html}
-        {top_html}
-      </div>
-    </section>
-
     <div class="reportPages">
-      <section class="page page--report">
+      <section class="page page--report page--cover">
         <div class="pageContent">
+          <div class="coverBlock">
+            {cover_html}
+            {top_html}
+          </div>
           <div class="reportTables">
-            {report_header_html}
             <div class="reportBlocks">
+              {presence_block_html}
               {zones_html}
               {annexes_html}
               {report_note_html}
             </div>
           </div>
-        </div>
-        <div class="docFooter">
-          <div class="footLeft"></div>
-          <div class="footCenter">
-            {("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}
-          </div>
-          <div class="footRight"><span class="footPageNumber"></span></div>
         </div>
       </section>
     </div>
