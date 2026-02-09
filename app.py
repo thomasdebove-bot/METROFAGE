@@ -1938,7 +1938,17 @@ def render_cr(
             lot_list = lots_map.get(_norm_name(name), [])
             lot_display = _escape(", ".join(lot_list)) if lot_list else "—"
             rows.append(
-                f\"\"\"\n            <tr>\n              <td>{name}</td>\n              <td>{lot_display}</td>\n              <td>{email or \"—\"}</td>\n              <td class='presenceFlag editableCell' contenteditable='true'></td>\n              <td class='presenceFlag editableCell' contenteditable='true'></td>\n              <td class='presenceFlag editableCell' contenteditable='true'></td>\n            </tr>\n                \"\"\"\n            )
+                f"""
+            <tr>
+              <td>{name}</td>
+              <td>{lot_display}</td>
+              <td>{email or "—"}</td>
+              <td class='presenceFlag editableCell' contenteditable='true'></td>
+              <td class='presenceFlag editableCell' contenteditable='true'></td>
+              <td class='presenceFlag editableCell' contenteditable='true'></td>
+            </tr>
+                """
+            )
         return \"\".join(rows)
 
     users_presence_rows = ""
