@@ -703,8 +703,8 @@ def packages_by_user(project_title: str) -> Dict[str, List[str]]:
         packages = packages.loc[
             packages[project_col].apply(lambda cell: project_title in _normalize_list_cell(str(cell)))
         ].copy()
-    user_col = _find_col(packages, [["user"], ["owner"], ["responsable"], ["person"]])
-    lot_col = _find_col(packages, [["package"], ["lot"], ["name"]])
+    user_col = _find_col(packages, [["managers", "ids"], ["manager", "ids"], ["managers"]])
+    lot_col = _find_col(packages, [["name", "text"], ["name", "with company"], ["name"]])
     if not user_col or not lot_col:
         return {}
     out: Dict[str, List[str]] = {}
@@ -713,8 +713,8 @@ def packages_by_user(project_title: str) -> Dict[str, List[str]]:
         lot_raw = str(row.get(lot_col, "")).strip()
         if not user_raw or not lot_raw:
             continue
-        key = _norm_name(user_raw)
-        out.setdefault(key, []).append(lot_raw)
+        for uid in _parse_ids(user_raw):
+            out.setdefault(uid, []).append(lot_raw)
     return out
 
 
@@ -1945,9 +1945,10 @@ def render_cr(
             return "<tr><td colspan='6' class='muted'>—</td></tr>"
         rows = []
         for it in items:
+            user_id = str(it.get("id", "")).strip()
             name = _escape(it.get("name", ""))
             email = _escape(it.get("email", ""))
-            lot_list = lots_map.get(_norm_name(name), [])
+            lot_list = lots_map.get(user_id, [])
             lot_display = _escape(", ".join(lot_list)) if lot_list else "—"
             rows.append(
                 f"""
@@ -1968,12 +1969,14 @@ def render_cr(
         users_df = users_for_project(project)
         packages_map = packages_by_user(project)
         if not users_df.empty:
+            id_col = _find_col(users_df, [["row id"], ["id"]])
             name_col = _find_col(users_df, [["full", "name"], ["name"], ["nom"]])
             first_col = _find_col(users_df, [["first"], ["prenom"]])
             last_col = _find_col(users_df, [["last"], ["nom"]])
             email_col = _find_col(users_df, [["mail"], ["email"]])
             items: List[Dict[str, str]] = []
             for _, row in users_df.iterrows():
+                user_id = str(row.get(id_col, "")).strip() if id_col else ""
                 full_name = ""
                 if name_col:
                     full_name = str(row.get(name_col, "")).strip()
@@ -1981,10 +1984,12 @@ def render_cr(
                     first = str(row.get(first_col, "")).strip() if first_col else ""
                     last = str(row.get(last_col, "")).strip() if last_col else ""
                     full_name = " ".join([p for p in [first, last] if p]).strip()
-                if not full_name:
+                if not full_name or not user_id:
+                    continue
+                if packages_map and user_id not in packages_map:
                     continue
                 email = str(row.get(email_col, "")).strip() if email_col else ""
-                items.append({"name": full_name, "email": email})
+                items.append({"id": user_id, "name": full_name, "email": email})
             items.sort(key=lambda x: (x.get("name", "").lower()))
             users_presence_rows = render_presence_rows(items, packages_map)
         else:
