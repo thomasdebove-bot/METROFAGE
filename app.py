@@ -1949,7 +1949,7 @@ def render_cr(
             </tr>
                 """
             )
-        return \"\".join(rows)
+        return "".join(rows)
 
     users_presence_rows = ""
     try:
